@@ -67,10 +67,15 @@ st.markdown("""
     max-width: 1000px;
     margin: 0 auto;
     padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-[data-testid="stVerticalBlock"] > div:has(.content-container) {
+div[data-testid="stVerticalBlock"] > div:has(.content-container) {
     width: 100% !important;
+    display: flex;
+    justify-content: center;
 }
 
 .analysis-text {
@@ -164,13 +169,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Analysis Mode Bar (Perfectly Centered via CSS) ────────────────────────────
-analysis_mode = st.radio(
-    "Select Mode",
-    ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
-    horizontal=True,
-    label_visibility="collapsed"
-)
+# ── Analysis Mode Bar (Reinforced Center) ───────────────────────────────────
+mode_c1, mode_c2, mode_c3 = st.columns([1, 3, 1])
+with mode_c2:
+    analysis_mode = st.radio(
+        "Select Mode",
+        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
