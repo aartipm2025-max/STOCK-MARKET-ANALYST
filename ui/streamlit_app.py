@@ -4,7 +4,13 @@ import json
 import time
 import pandas as pd
 import os
+import sys
 from dotenv import load_dotenv
+
+# Ensure the project root is in sys.path for cloud deployment
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_path not in sys.path:
+    sys.path.append(root_path)
 
 # Try to load local env, but don't fail if not present (Cloud)
 try:
