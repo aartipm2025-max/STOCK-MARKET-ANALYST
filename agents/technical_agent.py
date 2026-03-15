@@ -1,22 +1,14 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import requests
 from utils.logger import get_logger
 
 logger = get_logger("technical_agent")
 
-def get_session():
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.1.4472.124 Safari/537.36'
-    })
-    return session
-
 def analyze_technicals(ticker: str) -> dict:
     """Production Technical Analyst Agent."""
     try:
-        stock = yf.Ticker(ticker, session=get_session())
+        stock = yf.Ticker(ticker)
         df = stock.history(period="1y")
         
         if df.empty or len(df) < 20: 
