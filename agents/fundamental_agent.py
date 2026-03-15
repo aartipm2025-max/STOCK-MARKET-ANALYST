@@ -21,12 +21,12 @@ def analyze_fundamentals(ticker: str) -> dict:
                 return {"error": "DATA_NOT_AVAILABLE", "details": "Ticker not found on Yahoo Finance"}
 
         # Required metrics per prompt
-        revenue_growth = info.get("revenueGrowth")
-        pe_ratio = info.get("trailingPE")
+        revenue_growth = info.get("revenueGrowth") or info.get("earningsQuarterlyGrowth")
+        pe_ratio = info.get("trailingPE") or info.get("forwardPE")
         roe = info.get("returnOnEquity")
         debt_to_equity = info.get("debtToEquity")
         eps_growth = info.get("earningsGrowth")
-        op_margin = info.get("operatingMargins")
+        op_margin = info.get("operatingMargins") or info.get("profitMargins")
 
         # Normalize Debt to Equity (Yahoo often returns it as a percentage like 35 for 0.35)
         norm_debt_equity = debt_to_equity / 100.0 if debt_to_equity is not None else None

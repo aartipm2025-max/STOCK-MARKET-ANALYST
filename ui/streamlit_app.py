@@ -214,16 +214,12 @@ if st.session_state.results:
             with c2: st.markdown(f'<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed;">{scores.get("technical", 0)}</div><div style="color: #94a3b8; font-size: 0.8rem;">/ 10</div></div>', unsafe_allow_html=True)
             with c3: st.markdown(f'<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed;">{scores.get("sentiment", 0)}</div><div style="color: #94a3b8; font-size: 0.8rem;">/ 10</div></div>', unsafe_allow_html=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            
             analysis = res.get("analysis", "No analysis available.")
             
             # The .analysis-text class is applied via a wrapper div
             st.markdown(f'<div class="analysis-text">', unsafe_allow_html=True)
             st.markdown(analysis)
             st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
 
 
 else:

@@ -182,11 +182,12 @@ Market Sentiment Insights:
 
 #### RULES:
 1. Every bullet point MUST start on a new line.
-2. Place a BLANK LINE between every bullet point.
-3. NEVER place multiple bullets on the same line.
-4. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**).
-5. NEVER return long paragraphs. Keep explanations concise and readable.
-6. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
+2. Place a SINGLE NEWLINE between bullet points.
+3. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**).
+4. NEVER repeat the ticker name in every sentence.
+5. NEVER use filler phrases like "In summary," "Therefore," or "The analysis shows."
+6. Ensure explanations are direct: e.g., "• **RSI:** 17.47, indicating oversold levels" instead of "The RSI for TCS is 17.47 which means it is oversold."
+7. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
 
 Agent Data:
 {data_for_llm}
