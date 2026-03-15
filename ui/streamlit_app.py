@@ -216,58 +216,16 @@ if st.session_state.results:
 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Metric Deep Dive Tabs
-            tab_fund, tab_tech, tab_sent = st.tabs(["📊 Fundamentals", "📈 Technicals", "💬 Sentiment"])
+            # Detailed Report Section
+            st.markdown(f"### 📋 Detailed Analysis Report: **{target_ticker}**")
             
-            with tab_fund:
-                f_metrics = target_data.get("raw_metrics", {}).get("f", {}).get("metrics", {})
-                if f_metrics:
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown(f'<div class="metric-item-label">PE Ratio</div><div class="metric-item-value">{f_metrics.get("pe_ratio", "N/A")}</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="metric-item-label">EPS Growth</div><div class="metric-item-value">{f_metrics.get("eps_growth", 0)*100:.1f}%</div>', unsafe_allow_html=True)
-                    with c2:
-                        st.markdown(f'<div class="metric-item-label">Revenue Growth</div><div class="metric-item-value">{f_metrics.get("revenue_growth", 0)*100:.1f}%</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="metric-item-label">Debt/Equity</div><div class="metric-item-value">{f_metrics.get("debt_to_equity", "N/A")}</div>', unsafe_allow_html=True)
-                else: st.info("Fundamental metrics not available for this ticker.")
-                
-            with tab_tech:
-                t_metrics = target_data.get("raw_metrics", {}).get("t", {}).get("indicators", {})
-                if t_metrics:
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown(f'<div class="metric-item-label">Current Price</div><div class="metric-item-value">{t_metrics.get("current_price", "N/A")}</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="metric-item-label">RSI (14)</div><div class="metric-item-value">{t_metrics.get("rsi", "N/A")}</div>', unsafe_allow_html=True)
-                    with c2:
-                        st.markdown(f'<div class="metric-item-label">SMA 50</div><div class="metric-item-value">{t_metrics.get("sma_50", "N/A")}</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="metric-item-label">MACD Signal</div><div class="metric-item-value">{t_metrics.get("macd_signal", "N/A")}</div>', unsafe_allow_html=True)
-                else: st.info("Technical indicators not available.")
+            # The LLM now returns one unified structured report in `res['analysis']`.
+            # We will display it in a centered, premium card.
+            analysis = res.get("analysis", "No analysis available.")
+            st.markdown(f'<div class="analysis-text">{analysis}</div>', unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
 
-            with tab_sent:
-                s_metrics = target_data.get("raw_metrics", {}).get("s", {})
-                if s_metrics:
-                    st.markdown(f"#### Sentiment Deep Dive: **{s_metrics.get('sentiment_score', 5.0)}/10**")
-                    summary = s_metrics.get("summary", "")
-                    if summary:
-                        # Convert paragraph to bullets for better readability
-                        points = [p.strip() for p in summary.split('.') if len(p.strip()) > 5]
-                        for p in points:
-                            st.markdown(f"- {p}.")
-                    else: st.info("No detailed sentiment analysis available.")
-                else: st.info("Sentiment data not available.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(f"### 🤖 AI Narrative Report")
-    
-    analysis = res.get("analysis", "")
-    # Ensure the AI Narrative is presented in a premium bulleted format with bolding
-    if analysis:
-        formatted_analysis = analysis.replace("\n", "\n- ")
-        if not formatted_analysis.startswith("- "):
-             formatted_analysis = "- " + formatted_analysis
-        st.markdown(f'<div class="analysis-text">{formatted_analysis}</div>', unsafe_allow_html=True)
-    else:
-        st.info("No analysis available.")
 
 else:
     st.markdown("""

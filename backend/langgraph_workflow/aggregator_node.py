@@ -114,24 +114,40 @@ def summarize_results(state: dict) -> dict:
     
     template = """
 ### FINAL REPORT GENERATOR PROMPT
-You are a senior financial analyst. Generate a report based on user intent: {intent}.
+You are a senior financial analyst. Generate a structured report based on user intent: {intent}.
 
-#### MODE INSTRUCTIONS:
-- SINGLE STOCK: Provide deep fundamental, technical and sentiment analysis.
-- COMPARISON: Rank the stocks. State clearly which one is the winner and why.
-- PORTFOLIO: Evaluate overall health and suggest diversification.
-- GENERAL QUERY / CHAT: Provide a helpful and accurate answer to the user's financial question or chat message.
+#### MANDATORY STRUCTURE (Use this exact format for each ticker):
 
-#### REPORT REQUIREMENTS:
-1. Explain Fundamental strength (if tickers provided).
-2. Explain Technical trend (if tickers provided).
-3. Explain Sentiment (if tickers provided).
-4. Provide a final Recommendation, Answer, or Conclusion.
+**[TICKER NAME]**
 
-Rules:
-- STRICTLY UNDER 250 WORDS.
-- Use bold text for tickers and recommendations.
-- If data is missing, state 'DATA_NOT_AVAILABLE'.
+**FUNDAMENTAL (Score: X / 10)**
+Key Insights:
+• **Metric Name:** Brief explanation
+• **Metric Name:** Brief explanation
+
+**TECHNICAL (Score: X / 10)**
+Key Indicators:
+• **Indicator Name:** Brief explanation
+• **Indicator Name:** Brief explanation
+
+**SENTIMENT (Score: X / 10)**
+Market Sentiment Insights:
+• **Insight Topic:** Brief explanation
+• **Insight Topic:** Brief explanation
+
+**AI Narrative Summary:**
+• **Outlook/Growth:** Brief explanation
+• **Risks:** Brief explanation
+
+**Final Recommendation:**
+**[STRONG BUY / BUY / HOLD / SELL]**
+
+#### RULES:
+1. STRICTLY use bullet points (•) for all insights.
+2. BOLD all financial terms and metrics (e.g., **P/E Ratio**, **RSI**, **Revenue Growth**).
+3. NO long paragraphs. Keep explanations concise.
+4. If it's a COMPARISON, repeat this structure for each ticker and add a "Winner" section at the end.
+5. If it's a CHAT/GENERAL query, maintain the bulleted style for the answer.
 
 Agent Data:
 {data_for_llm}
