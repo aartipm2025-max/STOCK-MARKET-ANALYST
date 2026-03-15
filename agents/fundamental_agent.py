@@ -8,7 +8,7 @@ def analyze_fundamentals(ticker: str) -> dict:
     """Production Fundamental Analyst Agent."""
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
+        info = stock.info or {}
         
         # More robust ticker verification
         is_valid = info and (info.get("longName") or info.get("shortName") or info.get("symbol"))
