@@ -78,6 +78,7 @@ div[data-testid="stVerticalBlock"] > div:has(.content-container) {
     justify-content: center;
 }
 
+/* Main area text adjustments */
 .analysis-text {
     font-size: 1.1rem;
     line-height: 1.7;
@@ -90,27 +91,23 @@ div[data-testid="stVerticalBlock"] > div:has(.content-container) {
     max-width: 1000px;
     margin: 0 auto;
 }
-
-.metric-item-label {
-    font-size: 0.85rem;
-    color: #64748b !important;
-    font-weight: 500;
-}
-
-.metric-item-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #1e293b !important;
-}
-
-/* Hide Sidebar elements */
-[data-testid="stSidebarNav"] {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar removed as requested
-use_integrated = True
-api_url_setting = "http://localhost:8000"
+# ── Sidebar Navigation ────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("### Navigation")
+    analysis_mode = st.radio(
+        "Select Mode",
+        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+        index=0
+    )
+    st.markdown("---")
+    st.markdown("**Settings**")
+    use_integrated = st.toggle("Integrated Mode", value=True)
+    api_url_setting = "http://localhost:8000"
+
+# Main config
 
 # ── Main UI State ─────────────────────────────────────────────────────────────
 if "results" not in st.session_state:
@@ -161,31 +158,14 @@ def call_market_api(query, mode=None, force_integrated=False):
 # ── Global Central Container ──────────────────────────────────────────────────
 st.markdown('<div class="content-container">', unsafe_allow_html=True)
 
-# ── Header & Branding ────────────────────────────────────────────────────────
+# ── Header & Greeting ─────────────────────────────────────────────────────────
 st.markdown("""
-<div class="welcome-container" style="margin-top: 2rem;">
+<div class="welcome-container" style="margin-top: 2rem; text-align: center;">
     <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">Market Analyst AI</h1>
-    <p style="color: #64748b; font-size: 1.1rem;">Multi-agent AI system for Indian stock market analysis</p>
+    <h2 style="color: #475569; font-size: 1.8rem; margin: 0; padding-top: 10px;">Welcome back, Aarti</h2>
+    <p style="color: #64748b; font-size: 1.1rem; margin-top: 0.5rem;">Multi-agent AI system for Indian stock market analysis</p>
 </div>
 """, unsafe_allow_html=True)
-
-# ── Dashboard Controls (Greeting + Mode Selector) ───────────────────────────
-st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-ctrl_col1, ctrl_col2 = st.columns([1, 1.2])
-
-with ctrl_col1:
-    if not st.session_state.results:
-        st.markdown("<h2 style='color: #475569; font-size: 1.8rem; margin: 0; padding-top: 10px;'>Welcome back, Aarti</h2>", unsafe_allow_html=True)
-    else:
-        st.markdown("<h2 style='color: #475569; font-size: 1.8rem; margin: 0; padding-top: 10px;'>Analysis Results</h2>", unsafe_allow_html=True)
-
-with ctrl_col2:
-    analysis_mode = st.radio(
-        "Select Mode",
-        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
 
 st.markdown("<div style='height: 1rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
