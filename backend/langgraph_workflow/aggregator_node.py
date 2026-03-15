@@ -123,7 +123,9 @@ You are a senior financial analyst. Generate a structured report based on user i
 **SCORES OVERVIEW**
 
 • **Fundamental Score:** [F_SCORE] / 10
+
 • **Technical Score:** [T_SCORE] / 10
+
 • **Sentiment Score:** [S_SCORE] / 10
 
 ---
@@ -133,9 +135,13 @@ You are a senior financial analyst. Generate a structured report based on user i
 Key Insights:
 
 • **Revenue Growth:** Brief explanation
+
 • **P/E Ratio:** Brief explanation
+
 • **Return on Equity:** Brief explanation
+
 • **Debt-to-Equity:** Brief explanation
+
 • **Operating Margin:** Brief explanation
 
 ---
@@ -145,9 +151,13 @@ Key Insights:
 Key Indicators:
 
 • **RSI:** Brief explanation
+
 • **MACD:** Brief explanation
+
 • **50-Day Moving Average:** Brief explanation
+
 • **200-Day Moving Average:** Brief explanation
+
 • **Volume Trend:** Brief explanation
 
 ---
@@ -157,7 +167,9 @@ Key Indicators:
 Market Sentiment Insights:
 
 • **News Sentiment:** Brief explanation
+
 • **Industry Outlook:** Brief explanation
+
 • **Investor Confidence:** Brief explanation
 
 ---
@@ -165,7 +177,9 @@ Market Sentiment Insights:
 **AI NARRATIVE SUMMARY**
 
 • **Growth Outlook:** Brief explanation
+
 • **Key Strengths:** Brief explanation
+
 • **Risks:** Brief explanation
 
 ---
@@ -175,11 +189,12 @@ Market Sentiment Insights:
 **[STRONG BUY / BUY / HOLD / SELL]**
 
 #### RULES:
-1. STRICTLY use bullet points (•) for all insights.
-2. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**, **Growth Outlook**).
-3. NEVER return long paragraphs. Keep explanations concise and readable.
-4. Total length MUST be under 400 words.
-5. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
+1. Every bullet point MUST start on a new line.
+2. Place a BLANK LINE between every bullet point.
+3. NEVER place multiple bullets on the same line.
+4. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**).
+5. NEVER return long paragraphs. Keep explanations concise and readable.
+6. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
 
 Agent Data:
 {data_for_llm}
