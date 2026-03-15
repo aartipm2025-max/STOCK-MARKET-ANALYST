@@ -145,25 +145,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar Setup ─────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown('<div class="sidebar-title">⚡ Market Analyst AI</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-subtitle">Multi-agent AI system for Indian stock market analysis</div>', unsafe_allow_html=True)
-    
-    st.markdown("### Analysis Mode")
-    analysis_mode = st.radio(
-        "Select Mode",
-        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
-        label_visibility="collapsed"
-    )
-    
-    st.markdown("### Settings")
-    api_url_setting = st.text_input("API URL", "http://localhost:8000")
-    
-    # Check if we should use integrated mode
-    use_integrated = st.toggle("Use Integrated Mode", value=True, help="Run agents directly in this app instead of a separate API.")
-    
-    st.markdown('<div class="footer-text">Built with LangGraph + Gemini</div>', unsafe_allow_html=True)
+# Sidebar removed as requested
+use_integrated = True
+api_url_setting = "http://localhost:8000"
 
 # ── Main UI State ─────────────────────────────────────────────────────────────
 if "results" not in st.session_state:
@@ -211,22 +195,23 @@ def call_market_api(query, mode=None, force_integrated=False):
         st.error(f"Integrated Agent Error: {e}")
         return None
 
-# ── Header Section ────────────────────────────────────────────────────────────
+# ── Header & Branding ────────────────────────────────────────────────────────
 st.markdown("""
-<div class="top-nav">
-    <div class="brand">NVST</div>
-    <div style="display: flex; gap: 20px; font-weight: 500;">
-        <span>Dashboard</span>
-        <span>Trade</span>
-        <span>Accounts</span>
-        <span>Market Insights</span>
-    </div>
-    <div style="display: flex; gap: 15px; align-items: center;">
-        <span style="font-size: 0.9rem;">Search...</span>
-        <div style="width: 32px; height: 32px; background: #ddd; border-radius: 50%;"></div>
-    </div>
+<div style="text-align: center; margin-bottom: 2rem;">
+    <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">⚡ Market Analyst AI</h1>
+    <p style="color: #64748b; font-size: 1.1rem;">Multi-agent AI system for Indian stock market analysis</p>
 </div>
 """, unsafe_allow_html=True)
+
+# ── Analysis Mode Bar ────────────────────────────────────────────────────────
+analysis_mode = st.radio(
+    "Select Mode",
+    ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Metrics Bar ──────────────────────────────────────────────────────────────
 col_m1, col_m2, col_m3, col_m4 = st.columns([2, 1, 1, 1])
@@ -319,15 +304,24 @@ if st.session_state.results:
     with rc4: st.markdown('<div class="rec-card"><div style="font-weight:700;">ASIANPAINT</div><div style="color:#10b981;">INR 3,120 (+1.2%)</div><div style="font-size:0.75rem; color:#64748b;">92% Analysts Buy</div></div>', unsafe_allow_html=True)
 
 else:
-    st.markdown("<br><br><br><br><div style='text-align: center;'><h2 style='color: #475569;'>Welcome back, Aarti</h2><p style='color: #64748b;'>Enter a stock name or a question to start your analysis.</p></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align: center; margin-top: 2rem;'>
+        <h2 style='color: #475569;'>Welcome back, Aarti</h2>
+        <p style='color: #64748b; font-size: 1.1rem;'>Enter a stock name or a question to start your analysis.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Place search in the center for welcome screen
+    search_col_1, search_col_2, search_col_3 = st.columns([1, 4, 1])
+    with search_col_2:
+        user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder="e.g. Compare TCS and Infosys", label_visibility="collapsed")
+        sub_col1, sub_col2, sub_col3 = st.columns([1, 1, 1])
+        with sub_col2:
+            submit_btn = st.button("Generate Analysis", use_container_width=True)
 
-# ── Footer / Input ────────────────────────────────────────────────────────────
-st.markdown("<br>", unsafe_allow_html=True)
-with st.container():
-    user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder="e.g. Compare TCS and Infosys")
-    sub_col1, sub_col2 = st.columns([5, 1])
-    with sub_col2:
-        submit_btn = st.button("Generate Analysis", use_container_width=True)
+# ── Metrics Bar ──────────────────────────────────────────────────────────────
+# (Optional: Only show if results exist or keep as personal dash)
+# Moving metrics below if needed, but keeping for now as it gives it a dash feel.
 
 if submit_btn and user_query:
     st.session_state.results = None
