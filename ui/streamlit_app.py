@@ -246,13 +246,28 @@ if st.session_state.results:
             with tab_sent:
                 s_metrics = target_data.get("raw_metrics", {}).get("s", {})
                 if s_metrics:
-                    st.markdown(f"**Sentiment Analysis Score: {s_metrics.get('sentiment_score', 5.0)}/10**")
-                    st.write(s_metrics.get("summary", "No detailed sentiment analysis available."))
+                    st.markdown(f"#### Sentiment Deep Dive: **{s_metrics.get('sentiment_score', 5.0)}/10**")
+                    summary = s_metrics.get("summary", "")
+                    if summary:
+                        # Convert paragraph to bullets for better readability
+                        points = [p.strip() for p in summary.split('.') if len(p.strip()) > 5]
+                        for p in points:
+                            st.markdown(f"- {p}.")
+                    else: st.info("No detailed sentiment analysis available.")
                 else: st.info("Sentiment data not available.")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(f"### 🤖 AI Recommendation Report")
-    st.markdown(f'<div class="analysis-text">{res.get("analysis", "")}</div>', unsafe_allow_html=True)
+    st.markdown(f"### 🤖 AI Narrative Report")
+    
+    analysis = res.get("analysis", "")
+    # Ensure the AI Narrative is presented in a premium bulleted format with bolding
+    if analysis:
+        formatted_analysis = analysis.replace("\n", "\n- ")
+        if not formatted_analysis.startswith("- "):
+             formatted_analysis = "- " + formatted_analysis
+        st.markdown(f'<div class="analysis-text">{formatted_analysis}</div>', unsafe_allow_html=True)
+    else:
+        st.info("No analysis available.")
 
 else:
     st.markdown("""
