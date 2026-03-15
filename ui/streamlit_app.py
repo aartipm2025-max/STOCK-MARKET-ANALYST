@@ -169,6 +169,9 @@ st.markdown("""
 st.markdown("<div style='height: 1rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 # ── Content Logic ─────────────────────────────────────────────────────────────
+user_query = None
+submit_btn = False
+
 if st.session_state.results:
     res = st.session_state.results
     intent = res.get("intent", "unknown")
