@@ -1,0 +1,14 @@
+yfinance
+duckduckgo-search
+pandas
+numpy
+langchain
+langchain-core
+langchain-groq
+langchain-openai
+langchain-google-genai
+langgraph
+fastapi
+uvicorn
+streamlit
+python-dotenv
