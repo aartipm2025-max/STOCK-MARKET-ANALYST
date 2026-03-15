@@ -130,7 +130,6 @@ with st.sidebar:
     )
     st.markdown("---")
     st.markdown("### Stock Suggestions")
-    st.info("Try analyzing these:")
     st.markdown("- **Reliance**\n- **TCS**\n- **Infosys**\n- **HDFC Bank**\n- **Eternal (Zomato)**")
 
 use_integrated = True
