@@ -6,111 +6,137 @@ import numpy as np
 logger = get_logger("fundamental_agent")
 
 def analyze_fundamentals(ticker: str) -> dict:
-    """Production Fundamental Analyst Agent with multi-source fallback."""
+    """Production Fundamental Analyst Agent with multi-source statement extraction."""
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info or {}
         
         # 1. Primary Source: Ticker Info
-        revenue_growth = info.get("revenueGrowth") or info.get("earningsQuarterlyGrowth")
+        info = stock.info or {}
+        
+        # Pre-fetch financial statements to avoid multiple network calls
+        income_stmt = stock.income_stmt
+        balance_sheet = stock.balance_sheet
+        
+        # Metric Extraction Logic
+        revenue_growth = info.get("revenueGrowth")
         pe_ratio = info.get("trailingPE") or info.get("forwardPE")
         roe = info.get("returnOnEquity")
         debt_to_equity = info.get("debtToEquity")
         op_margin = info.get("operatingMargins") or info.get("profitMargins")
-        eps_growth = info.get("earningsGrowth")
 
-        # 2. Secondary Source: Financial Statements (Fallback)
+        # 2. Fallback to Financial Statements if Info is missing
         if any(v is None for v in [revenue_growth, roe, debt_to_equity, op_margin]):
             try:
-                income = stock.income_stmt
-                balance = stock.balance_sheet
-                
-                if not income.empty and not balance.empty:
-                    # Extraction from Income Statement
-                    if revenue_growth is None and "Total Revenue" in income.index:
-                        revs = income.loc["Total Revenue"]
+                if not income_stmt.empty and not balance_sheet.empty:
+                    # Revenue Growth Calculation
+                    if revenue_growth is None and "Total Revenue" in income_stmt.index:
+                        revs = income_stmt.loc["Total Revenue"]
                         if len(revs) >= 2:
                             revenue_growth = (revs.iloc[0] - revs.iloc[1]) / revs.iloc[1]
                     
-                    if op_margin is None and "Operating Income" in income.index and "Total Revenue" in income.index:
-                        op_inc = income.loc["Operating Income"]
-                        total_rev = income.loc["Total Revenue"]
-                        if not op_inc.empty and not total_rev.empty:
+                    # Operating Margin Calculation
+                    if op_margin is None and "Operating Income" in income_stmt.index and "Total Revenue" in income_stmt.index:
+                        op_inc = income_stmt.loc["Operating Income"]
+                        total_rev = income_stmt.loc["Total Revenue"]
+                        if not op_inc.empty and not total_rev.empty and total_rev.iloc[0] != 0:
                             op_margin = op_inc.iloc[0] / total_rev.iloc[0]
 
-                    # Extraction from Balance Sheet
+                    # ROE Calculation (Net Income / Shareholder Equity)
                     equity = None
-                    if "Stockholders Equity" in balance.index:
-                        equity = balance.loc["Stockholders Equity"].iloc[0]
-                    elif "Total Equity Gross Minority Interest" in balance.index:
-                        equity = balance.loc["Total Equity Gross Minority Interest"].iloc[0]
+                    for k in ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity"]:
+                        if k in balance_sheet.index:
+                            equity = balance_sheet.loc[k].iloc[0]
+                            break
+                    
+                    if roe is None and equity and "Net Income" in income_stmt.index:
+                        net_inc = income_stmt.loc["Net Income"].iloc[0]
+                        if equity != 0:
+                            roe = net_inc / equity
 
-                    if roe is None and equity and "Net Income" in income.index:
-                        net_inc = income.loc["Net Income"].iloc[0]
-                        roe = net_inc / equity if equity != 0 else None
-
+                    # Debt to Equity Calculation
                     if debt_to_equity is None and equity:
                         total_debt = None
-                        if "Total Debt" in balance.index:
-                            total_debt = balance.loc["Total Debt"].iloc[0]
-                        
-                        if total_debt is not None:
-                            debt_to_equity = total_debt / equity if equity != 0 else None
+                        for k in ["Total Debt", "Net Debt"]:
+                            if k in balance_sheet.index:
+                                total_debt = balance_sheet.loc[k].iloc[0]
+                                break
+                        if total_debt is not None and equity != 0:
+                            debt_to_equity = total_debt / equity
+
             except Exception as fe:
-                logger.warning(f"Financial statement extraction failed for {ticker}: {fe}")
+                logger.warning(f"Manual financial calculation failed for {ticker}: {fe}")
 
-        # Normalize Debt to Equity (Convert % to decimal if needed)
-        norm_debt_equity = debt_to_equity
-        if norm_debt_equity is not None and norm_debt_equity > 10: # Likely a percentage
-            norm_debt_equity = norm_debt_equity / 100.0
+        # 3. Manual P/E Calculation Fallback
+        if pe_ratio is None:
+            try:
+                price = info.get("currentPrice") or info.get("previousClose")
+                if not price:
+                    hist = stock.history(period="1d")
+                    if not hist.empty:
+                        price = hist['Close'].iloc[0]
+                
+                eps = info.get("trailingEps")
+                if eps is None and "Net Income" in income_stmt.index and "Ordinary Shares Number" in balance_sheet.index:
+                    ni = income_stmt.loc["Net Income"].iloc[0]
+                    shares = balance_sheet.loc["Ordinary Shares Number"].iloc[0]
+                    if shares != 0:
+                        eps = ni / shares
+                
+                if price and eps and eps > 0:
+                    pe_ratio = price / eps
+            except:
+                pass
 
-        # Scoring Logic (Max 10.0)
+        # Normalize Debt to Equity percentage
+        norm_de = debt_to_equity
+        if norm_de is not None and norm_de > 10:
+            norm_de = norm_de / 100.0
+
+        # 4. Scoring Logic (Max 10.0)
+        # Weights: Growth (2.5), Profitability (2.5), Stability (2.5), Valuation (2.5)
         score = 0.0
-        metrics_found = 0
         
+        # Growth Strength (max 2.5)
         if revenue_growth is not None:
-            metrics_found += 1
-            if revenue_growth > 0.10: score += 2
-            elif revenue_growth > 0: score += 1
+            if revenue_growth > 0.15: score += 2.5
+            elif revenue_growth > 0.05: score += 1.5
+            elif revenue_growth > 0: score += 0.5
             
+        # Profitability: ROE + Op Margin (max 2.5)
+        p_score = 0.0
         if roe is not None:
-            metrics_found += 1
-            if roe > 0.15: score += 2
-            elif roe > 0.08: score += 1
-            
-        if norm_debt_equity is not None:
-            metrics_found += 1
-            if norm_debt_equity < 0.5: score += 2
-            elif norm_debt_equity < 1.0: score += 1
-            
-        if pe_ratio is not None:
-            metrics_found += 1
-            if 5 < pe_ratio < 25: score += 2
-            elif 0 < pe_ratio < 40: score += 1
-            
+            if roe > 0.15: p_score += 1.25
+            elif roe > 0.08: p_score += 0.75
         if op_margin is not None:
-            metrics_found += 1
-            if op_margin > 0.20: score += 2
-            elif op_margin > 0.10: score += 1
+            if op_margin > 0.20: p_score += 1.25
+            elif op_margin > 0.10: p_score += 0.75
+        score += p_score
+            
+        # Financial Stability: Debt-to-Equity (max 2.5)
+        if norm_de is not None:
+            if norm_de < 0.5: score += 2.5
+            elif norm_de < 1.0: score += 1.5
+            elif norm_de < 2.0: score += 0.5
+            
+        # Valuation: P/E Ratio (max 2.5)
+        if pe_ratio is not None:
+            if 0 < pe_ratio < 20: score += 2.5
+            elif 20 <= pe_ratio < 40: score += 1.5
+            elif 40 <= pe_ratio < 60: score += 0.5
 
-        # Adjust score if data is missing but some metrics are positive
-        if metrics_found > 0 and score == 0:
-            score = 1.0 # Minimal positive presence
-        elif metrics_found == 0:
-            score = 0.0
-
+        # 5. Result Formatting
         return {
             "agent": "fundamental",
             "ticker": ticker,
             "metrics": {
                 "long_name": info.get("longName") or info.get("shortName") or ticker,
-                "revenue_growth": round(revenue_growth, 4) if revenue_growth is not None else None,
-                "pe_ratio": round(pe_ratio, 2) if pe_ratio is not None else None,
-                "roe": round(roe, 4) if roe is not None else None,
-                "debt_to_equity": round(norm_debt_equity, 4) if norm_debt_equity is not None else None,
-                "operating_margin": round(op_margin, 4) if op_margin is not None else None
+                "revenue_growth": round(revenue_growth, 4) if revenue_growth is not None else "Unavailable from source",
+                "pe_ratio": round(pe_ratio, 2) if pe_ratio is not None else "Unavailable from source",
+                "roe": round(roe, 4) if roe is not None else "Unavailable from source",
+                "debt_to_equity": round(norm_de, 4) if norm_de is not None else "Unavailable from source",
+                "operating_margin": round(op_margin, 4) if op_margin is not None else "Unavailable from source"
             },
-            "fundamental_score": round(score, 1)
+            "fundamental_score": round(min(score, 10.0), 1)
         }
     except Exception as e:
         logger.error(f"Fundamental analysis failed for {ticker}: {e}")
