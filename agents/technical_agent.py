@@ -35,6 +35,7 @@ def analyze_technicals(ticker: str) -> dict:
         df['Vol_Avg'] = df['Volume'].rolling(window=min(len(df), 20)).mean()
         
         latest = df.iloc[-1]
+        latest_date = df.index[-1].strftime("%d %B %Y")
         
         # Scoring
         score = 0.0
@@ -47,6 +48,7 @@ def analyze_technicals(ticker: str) -> dict:
         return {
             "agent": "technical",
             "ticker": ticker,
+            "latest_data_date": latest_date,
             "indicators": {
                 "current_price": round(latest['Close'], 2),
                 "sma_50": round(latest['SMA_50'], 2) if not pd.isna(latest['SMA_50']) else None,

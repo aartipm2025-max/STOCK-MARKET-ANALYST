@@ -209,10 +209,17 @@ if st.session_state.results:
     
     # Clean Ticker Display
     display_ticker = tickers[0] if tickers else "Unknown"
+    
+    # Extract Date from the first valid record
+    analysis_date = "N/A"
+    if agg_data_list:
+        analysis_date = agg_data_list[0].get("analysis_date", "N/A")
+
     st.markdown(f"""
         <div style='text-align: center; margin-bottom: 2rem;'>
             <h1 style='color: #1e293b; font-size: 3rem; margin-bottom: 0px;'>{display_ticker}</h1>
-            <p style='color: #64748b; font-size: 1.2rem; font-weight: 500;'>Comprehensive Market Analysis Report</p>
+            <p style='color: #64748b; font-size: 1.2rem; font-weight: 500; margin-bottom: 5px;'>Comprehensive Market Analysis Report</p>
+            <p style='color: #475569; font-size: 1rem; font-weight: 600;'>Data Analyzed Up To: {analysis_date}</p>
         </div>
     """, unsafe_allow_html=True)
 

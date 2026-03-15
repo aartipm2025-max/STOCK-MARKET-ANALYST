@@ -66,12 +66,16 @@ def summarize_results(state: dict) -> dict:
         elif final_score >= 6: rec = "BUY"
         elif final_score >= 4: rec = "HOLD"
         else: rec = "AVOID"
+
+        # Extract latest date from technical data
+        analysis_date = technical.get(ticker, {}).get("latest_data_date", "Unknown")
         
         aggregation_results.append({
             "ticker": ticker,
             "scores": {"fundamental": f_score, "technical": t_score, "sentiment": s_score},
             "final_score": round(final_score, 2),
             "recommendation": rec,
+            "analysis_date": analysis_date,
             "raw_metrics": {
                 "f": fundamental.get(ticker),
                 "t": technical.get(ticker),
