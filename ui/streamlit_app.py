@@ -144,7 +144,6 @@ st.markdown("""
 [data-testid="stSidebarNav"] {display: none;}
 </style>
 """, unsafe_allow_html=True)
-""", unsafe_allow_html=True)
 
 # ── Sidebar Setup ─────────────────────────────────────────────────────────────
 with st.sidebar:
