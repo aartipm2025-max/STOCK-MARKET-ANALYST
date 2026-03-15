@@ -54,9 +54,9 @@ def summarize_results(state: dict) -> dict:
     
     # Process scores for each ticker
     for ticker in tickers:
-        f_score = fundamental.get(ticker, {}).get("fundamental_score", 5.0)
-        t_score = technical.get(ticker, {}).get("technical_score", 5.0)
-        s_score = sentiment.get(ticker, {}).get("sentiment_score", 5.0)
+        f_score = fundamental.get(ticker, {}).get("fundamental_score", 0.0)
+        t_score = technical.get(ticker, {}).get("technical_score", 0.0)
+        s_score = sentiment.get(ticker, {}).get("sentiment_score", 0.0)
         
         # Final Score = (0.4 * F) + (0.4 * T) + (0.2 * S)
         final_score = (0.4 * f_score) + (0.4 * t_score) + (0.2 * s_score)

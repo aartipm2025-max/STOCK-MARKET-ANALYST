@@ -1,14 +1,21 @@
 import yfinance as yf
+import requests
 from utils.logger import get_logger
 import pandas as pd
 
 logger = get_logger("fundamental_agent")
 
+def get_session():
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.1.4472.124 Safari/537.36'
+    })
+    return session
+
 def analyze_fundamentals(ticker: str) -> dict:
     """Production Fundamental Analyst Agent."""
     try:
-        # Let yfinance handle the session internally (it uses curl_cffi if installed)
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker, session=get_session())
         info = stock.info
         
         # More robust ticker verification
