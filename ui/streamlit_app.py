@@ -235,21 +235,21 @@ with col_m1:
     st.markdown("""
     <div class="metric-row">
         <div style="font-size: 0.85rem; color: #64748b;">Your Portfolio Value</div>
-        <div class="metric-value">₹15,036.67</div>
+        <div class="metric-value">INR 15,036.67</div>
     </div>
     """, unsafe_allow_html=True)
 with col_m2:
     st.markdown("""
     <div class="metric-row">
         <div style="font-size: 0.85rem; color: #64748b;">Today's Gain</div>
-        <div class="gain-positive">+₹85.87 (1.35%)</div>
+        <div class="gain-positive">+INR 85.87 (1.35%)</div>
     </div>
     """, unsafe_allow_html=True)
 with col_m3:
     st.markdown("""
     <div class="metric-row">
         <div style="font-size: 0.85rem; color: #64748b;">Total Gain</div>
-        <div class="gain-positive">+₹843.70 (7.35%)</div>
+        <div class="gain-positive">+INR 843.70 (7.35%)</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -314,10 +314,10 @@ if st.session_state.results:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Recommendations for you")
     rc1, rc2, rc3, rc4 = st.columns(4)
-    with rc1: st.markdown('<div class="rec-card"><div style="font-weight:700;">TITAN</div><div style="color:#10b981;">₹3,450 (+2.1%)</div><div style="font-size:0.75rem; color:#64748b;">91% Analysts Buy</div></div>', unsafe_allow_html=True)
-    with rc2: st.markdown('<div class="rec-card"><div style="font-weight:700;">RELIANCE</div><div style="color:#10b981;">₹2,980 (+0.8%)</div><div style="font-size:0.75rem; color:#64748b;">84% Analysts Buy</div></div>', unsafe_allow_html=True)
-    with rc3: st.markdown('<div class="rec-card"><div style="font-weight:700;">HDFCBANK</div><div style="color:#ef4444;">₹1,420 (-0.5%)</div><div style="font-size:0.75rem; color:#64748b;">76% Analysts Buy</div></div>', unsafe_allow_html=True)
-    with rc4: st.markdown('<div class="rec-card"><div style="font-weight:700;">ASIANPAINT</div><div style="color:#10b981;">₹3,120 (+1.2%)</div><div style="font-size:0.75rem; color:#64748b;">92% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc1: st.markdown('<div class="rec-card"><div style="font-weight:700;">TITAN</div><div style="color:#10b981;">INR 3,450 (+2.1%)</div><div style="font-size:0.75rem; color:#64748b;">91% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc2: st.markdown('<div class="rec-card"><div style="font-weight:700;">RELIANCE</div><div style="color:#10b981;">INR 2,980 (+0.8%)</div><div style="font-size:0.75rem; color:#64748b;">84% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc3: st.markdown('<div class="rec-card"><div style="font-weight:700;">HDFCBANK</div><div style="color:#ef4444;">INR 1,420 (-0.5%)</div><div style="font-size:0.75rem; color:#64748b;">76% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc4: st.markdown('<div class="rec-card"><div style="font-weight:700;">ASIANPAINT</div><div style="color:#10b981;">INR 3,120 (+1.2%)</div><div style="font-size:0.75rem; color:#64748b;">92% Analysts Buy</div></div>', unsafe_allow_html=True)
 
 else:
     st.markdown("<br><br><br><br><div style='text-align: center;'><h2 style='color: #475569;'>Welcome back, Aarti</h2><p style='color: #64748b;'>Enter a stock name or a question to start your analysis.</p></div>", unsafe_allow_html=True)
