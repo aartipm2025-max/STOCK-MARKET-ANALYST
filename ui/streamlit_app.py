@@ -3,6 +3,16 @@ import requests
 import json
 import time
 import pandas as pd
+import os
+from dotenv import load_dotenv
+
+# Try to load local env, but don't fail if not present (Cloud)
+try:
+    load_dotenv()
+except:
+    pass
+
+from backend.langgraph_workflow.graph import build_graph
 
 # ── Page Config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -166,30 +176,55 @@ with st.sidebar:
     st.markdown("### Settings")
     api_url_setting = st.text_input("API URL", "http://localhost:8000")
     
-    st.markdown('<div class="footer-text">Built with LangGraph + Gemini + FastAPI</div>', unsafe_allow_html=True)
+    # Check if we should use integrated mode
+    use_integrated = st.toggle("Use Integrated Mode", value=True, help="Run agents directly in this app instead of a separate API.")
+    
+    st.markdown('<div class="footer-text">Built with LangGraph + Gemini</div>', unsafe_allow_html=True)
 
 # ── Main UI State ─────────────────────────────────────────────────────────────
 if "results" not in st.session_state:
     st.session_state.results = None
 
 # ── Helper: Call API ─────────────────────────────────────────────────────────
-def call_market_api(query, mode=None):
+def call_market_api(query, mode=None, force_integrated=False):
     # If mode is explicitly selected in UI, hint it in the query
     hinted_query = query
     if mode == "Single Stock": hinted_query = f"[MODE: Single Stock Analysis] {query}"
     elif mode == "Compare Stocks": hinted_query = f"[MODE: Stock Comparison] {query}"
     elif mode == "Portfolio": hinted_query = f"[MODE: Portfolio Analysis] {query}"
     
-    endpoint = f"{api_url_setting}/analyze"
+    if not force_integrated:
+        endpoint = f"{api_url_setting}/analyze"
+        try:
+            response = requests.post(endpoint, json={"query": hinted_query}, timeout=5) # Short timeout for check
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass # Fallback to integrated
+            
+    # Integrated Mode Logic
     try:
-        response = requests.post(endpoint, json={"query": hinted_query}, timeout=60)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            st.error(f"API Error ({response.status_code}): {response.text}")
-            return None
+        graph = build_graph()
+        initial_state = {
+            "query": hinted_query,
+            "intent": "",
+            "tickers": [],
+            "fundamental_data": {},
+            "technical_data": {},
+            "sentiment_data": {},
+            "portfolio_data": {},
+            "final_analysis": "",
+            "aggregated_data": []
+        }
+        result_state = graph.invoke(initial_state)
+        return {
+            "intent": result_state.get("intent", "unknown"),
+            "tickers": result_state.get("tickers", []),
+            "analysis": result_state.get("final_analysis", "Analysis failed."),
+            "aggregated_data": result_state.get("aggregated_data", [])
+        }
     except Exception as e:
-        st.error(f"API Connection Error: {e}")
+        st.error(f"Integrated Agent Error: {e}")
         return None
 
 # ── Content Logic ─────────────────────────────────────────────────────────────
@@ -298,6 +333,6 @@ with st.form("query_form", clear_on_submit=True):
 
 if submit_btn and user_query:
     st.session_state.results = None  # Clear previous results
-    with st.spinner("🤖 Analyzing Market Data..."):
-        st.session_state.results = call_market_api(user_query, mode=analysis_mode)
+    with st.spinner("🤖 AI Agents at work..."):
+        st.session_state.results = call_market_api(user_query, mode=analysis_mode, force_integrated=use_integrated)
         st.rerun()
