@@ -62,7 +62,17 @@ st.markdown("""
     letter-spacing: -1px;
 }
 
-/* Analysis Content - Premium Style */
+/* Global Content Alignment */
+.content-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+[data-testid="stVerticalBlock"] > div:has(.content-container) {
+    width: 100% !important;
+}
+
 .analysis-text {
     font-size: 1.1rem;
     line-height: 1.7;
@@ -72,6 +82,8 @@ st.markdown("""
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     border-left: 5px solid #7c3aed;
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 .metric-item-label {
@@ -141,9 +153,12 @@ def call_market_api(query, mode=None, force_integrated=False):
         st.error(f"Integrated Agent Error: {e}")
         return None
 
+# ── Global Central Container ──────────────────────────────────────────────────
+st.markdown('<div class="content-container">', unsafe_allow_html=True)
+
 # ── Header & Branding ────────────────────────────────────────────────────────
 st.markdown("""
-<div class="welcome-container">
+<div class="welcome-container" style="margin-top: 2rem;">
     <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">Market Analyst AI</h1>
     <p style="color: #64748b; font-size: 1.1rem;">Multi-agent AI system for Indian stock market analysis</p>
 </div>
@@ -269,3 +284,5 @@ if submit_btn and user_query:
     with st.spinner("🤖 AI Agents at work..."):
         st.session_state.results = call_market_api(user_query, mode=analysis_mode, force_integrated=use_integrated)
         st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True) # End Global Container
