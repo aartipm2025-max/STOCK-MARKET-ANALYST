@@ -109,13 +109,36 @@ st.markdown("""
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-/* Inputs */
-.stTextInput input {
-    border-radius: 8px !important;
-    border: 1px solid #e2e8f0 !important;
+/* Inputs & Buttons */
+.stTextInput {
+    max-width: 700px;
+    margin: 0 auto;
 }
 
-/* Hide Sidebar elements for cleaner look */
+div[data-testid="stForm"] {
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Force Horizontal Radio Centering */
+div[data-testid="stHorizontalBlock"] {
+    justify-content: center !important;
+}
+
+.stRadio > div {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* Adjust Welcome Text */
+.welcome-container {
+    text-align: center;
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+}
+
+/* Hide Sidebar elements */
 [data-testid="stSidebarNav"] {display: none;}
 </style>
 """, unsafe_allow_html=True)
@@ -172,21 +195,19 @@ def call_market_api(query, mode=None, force_integrated=False):
 
 # ── Header & Branding ────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align: center; margin-bottom: 1.5rem;">
+<div class="welcome-container">
     <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">Market Analyst AI</h1>
     <p style="color: #64748b; font-size: 1.1rem;">Multi-agent AI system for Indian stock market analysis</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Analysis Mode Bar (Centered) ─────────────────────────────────────────────
-mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
-with mode_col2:
-    analysis_mode = st.radio(
-        "Select Mode",
-        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+# ── Analysis Mode Bar (Perfectly Centered via CSS) ────────────────────────────
+analysis_mode = st.radio(
+    "Select Mode",
+    ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -258,18 +279,20 @@ if st.session_state.results:
 
 else:
     st.markdown("""
-    <div style='text-align: center; margin-top: 2rem;'>
-        <h2 style='color: #475569;'>Welcome back, Aarti</h2>
-        <p style='color: #64748b; font-size: 1.1rem;'>Enter a stock name or a question to start your analysis.</p>
+    <div style='text-align: center; margin-top: 1rem;'>
+        <h2 style='color: #475569; font-size: 2rem;'>Welcome back, Aarti</h2>
+        <p style='color: #64748b; font-size: 1.1rem; margin-bottom: 2.5rem;'>What would you like to analyze today?</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Place search in the center for welcome screen
-    search_col_1, search_col_2, search_col_3 = st.columns([1, 4, 1])
-    with search_col_2:
+    # Perfectly Centered Search Container
+    c1, c2, c3 = st.columns([1, 3, 1])
+    with c2:
         user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder="e.g. Compare TCS and Infosys", label_visibility="collapsed")
-        sub_col1, sub_col2, sub_col3 = st.columns([1, 1, 1])
-        with sub_col2:
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        # Center the button within this column
+        b_c1, b_c2, b_c3 = st.columns([1, 1, 1])
+        with b_c2:
             submit_btn = st.button("Generate Analysis", use_container_width=True)
 
 # ── Metrics Bar ──────────────────────────────────────────────────────────────
