@@ -217,12 +217,16 @@ if st.session_state.results:
             st.markdown("<br>", unsafe_allow_html=True)
             
             # Detailed Report Section
-            st.markdown(f"### 📋 Detailed Analysis Report: **{target_ticker}**")
+            # We use a standard markdown block for best formatting compatibility
+            # but wrap it in our centered content-container logic.
+            st.markdown(f"### 📋 Analysis Report: **{target_ticker}**")
             
-            # The LLM now returns one unified structured report in `res['analysis']`.
-            # We will display it in a centered, premium card.
             analysis = res.get("analysis", "No analysis available.")
-            st.markdown(f'<div class="analysis-text">{analysis}</div>', unsafe_allow_html=True)
+            
+            # The .analysis-text class is applied via a wrapper div
+            st.markdown(f'<div class="analysis-text">', unsafe_allow_html=True)
+            st.markdown(analysis)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
 

@@ -116,38 +116,70 @@ def summarize_results(state: dict) -> dict:
 ### FINAL REPORT GENERATOR PROMPT
 You are a senior financial analyst. Generate a structured report based on user intent: {intent}.
 
-#### MANDATORY STRUCTURE (Use this exact format for each ticker):
+#### MANDATORY OUTPUT STRUCTURE (Use this exact format for each ticker):
 
-**[TICKER NAME]**
+STOCK: **[TICKER NAME]**
 
-**FUNDAMENTAL (Score: X / 10)**
+**SCORES**
+
+Fundamental: **[F_SCORE]** / 10
+Technical: **[T_SCORE]** / 10
+Sentiment: **[S_SCORE]** / 10
+
+---
+
+**FUNDAMENTAL ANALYSIS**
+
 Key Insights:
-• **Metric Name:** Brief explanation
-• **Metric Name:** Brief explanation
 
-**TECHNICAL (Score: X / 10)**
+• **Revenue Growth:** Brief explanation
+• **P/E Ratio:** Brief explanation
+• **Return on Equity:** Brief explanation
+• **Debt-to-Equity:** Brief explanation
+• **Operating Margin:** Brief explanation
+
+---
+
+**TECHNICAL ANALYSIS**
+
 Key Indicators:
-• **Indicator Name:** Brief explanation
-• **Indicator Name:** Brief explanation
 
-**SENTIMENT (Score: X / 10)**
+• **RSI:** Brief explanation
+• **MACD:** Brief explanation
+• **50-Day Moving Average:** Brief explanation
+• **200-Day Moving Average:** Brief explanation
+• **Volume Trend:** Brief explanation
+
+---
+
+**SENTIMENT ANALYSIS**
+
 Market Sentiment Insights:
-• **Insight Topic:** Brief explanation
-• **Insight Topic:** Brief explanation
 
-**AI Narrative Summary:**
-• **Outlook/Growth:** Brief explanation
+• **News Sentiment:** Brief explanation
+• **Industry Outlook:** Brief explanation
+• **Investor Confidence:** Brief explanation
+
+---
+
+**AI NARRATIVE SUMMARY**
+
+• **Growth Outlook:** Brief explanation
+• **Key Strengths:** Brief explanation
 • **Risks:** Brief explanation
 
-**Final Recommendation:**
+---
+
+**FINAL RECOMMENDATION**
+
 **[STRONG BUY / BUY / HOLD / SELL]**
 
 #### RULES:
 1. STRICTLY use bullet points (•) for all insights.
-2. BOLD all financial terms and metrics (e.g., **P/E Ratio**, **RSI**, **Revenue Growth**).
-3. NO long paragraphs. Keep explanations concise.
-4. If it's a COMPARISON, repeat this structure for each ticker and add a "Winner" section at the end.
-5. If it's a CHAT/GENERAL query, maintain the bulleted style for the answer.
+2. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**, **Growth Outlook**).
+3. NEVER return long paragraphs. Keep explanations concise and readable.
+4. Total length MUST be under 400 words.
+5. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
 
 Agent Data:
 {data_for_llm}
