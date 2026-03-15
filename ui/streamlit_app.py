@@ -62,31 +62,6 @@ st.markdown("""
     letter-spacing: -1px;
 }
 
-/* Metrics Bar */
-.metric-row {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin-bottom: 1.5rem;
-}
-
-.metric-value {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #1e293b;
-}
-
-.gain-positive {
-    color: #10b981 !important;
-    font-weight: 600;
-}
-
-.gain-negative {
-    color: #ef4444 !important;
-    font-weight: 600;
-}
-
 /* Cards & Tables */
 .card {
     background: white;
@@ -212,30 +187,6 @@ analysis_mode = st.radio(
 )
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-# ── Metrics Bar ──────────────────────────────────────────────────────────────
-col_m1, col_m2, col_m3, col_m4 = st.columns([2, 1, 1, 1])
-with col_m1:
-    st.markdown("""
-    <div class="metric-row">
-        <div style="font-size: 0.85rem; color: #64748b;">Your Portfolio Value</div>
-        <div class="metric-value">INR 15,036.67</div>
-    </div>
-    """, unsafe_allow_html=True)
-with col_m2:
-    st.markdown("""
-    <div class="metric-row">
-        <div style="font-size: 0.85rem; color: #64748b;">Today's Gain</div>
-        <div class="gain-positive">+INR 85.87 (1.35%)</div>
-    </div>
-    """, unsafe_allow_html=True)
-with col_m3:
-    st.markdown("""
-    <div class="metric-row">
-        <div style="font-size: 0.85rem; color: #64748b;">Total Gain</div>
-        <div class="gain-positive">+INR 843.70 (7.35%)</div>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ── Content Logic ─────────────────────────────────────────────────────────────
 if st.session_state.results:
