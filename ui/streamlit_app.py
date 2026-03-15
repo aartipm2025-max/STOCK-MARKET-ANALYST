@@ -102,10 +102,9 @@ with st.sidebar:
         ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
         index=0
     )
-    st.markdown("---")
-    st.markdown("**Settings**")
-    use_integrated = st.toggle("Integrated Mode", value=True)
-    api_url_setting = "http://localhost:8000"
+
+use_integrated = True
+api_url_setting = "http://localhost:8000"
 
 # Main config
 
