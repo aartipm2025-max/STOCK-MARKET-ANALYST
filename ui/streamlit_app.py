@@ -79,17 +79,44 @@ div[data-testid="stVerticalBlock"] > div:has(.content-container) {
 }
 
 /* Main area text adjustments */
-.analysis-text {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    color: #334155 !important;
+.analysis-card {
     background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+    color: #1e293b;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 0.5rem;
+}
+
+.recommendation-banner {
     padding: 1.5rem;
     border-radius: 12px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-top: 2rem;
+}
+
+.score-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
     border: 1px solid #e2e8f0;
-    border-left: 5px solid #7c3aed;
-    max-width: 1000px;
-    margin: 0 auto;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.score-card:hover {
+    transform: translateY(-5px);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -178,8 +205,15 @@ if st.session_state.results:
     tickers = res.get("tickers", [])
     agg_data_list = res.get("aggregated_data", [])
     
-    st.markdown(f"### 📈 {tickers[0] if len(tickers) == 1 else ('Comparison Dashboard' if intent == 'comparison' else 'Analysis Report')}")
-    
+    # Clean Ticker Display
+    display_ticker = tickers[0] if tickers else "Unknown"
+    st.markdown(f"""
+        <div style='text-align: center; margin-bottom: 2rem;'>
+            <h1 style='color: #1e293b; font-size: 3rem; margin-bottom: 0px;'>{display_ticker}</h1>
+            <p style='color: #64748b; font-size: 1.2rem; font-weight: 500;'>Comprehensive Market Analysis Report</p>
+        </div>
+    """, unsafe_allow_html=True)
+
     if agg_data_list:
         if intent == "comparison":
             st.markdown("#### Market Comparison Table")
@@ -203,23 +237,77 @@ if st.session_state.results:
             st.markdown("<br>", unsafe_allow_html=True)
 
         if len(agg_data_list) > 0:
-            # Main Score Overview (for first or selected ticker)
+            # Main Score Overview (Horizontal Metrics Row)
             target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
             target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
-            
             scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
             
-            c1, c2, c3 = st.columns(3)
-            with c1: st.markdown(f'<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed;">{scores.get("fundamental", 0)}</div><div style="color: #94a3b8; font-size: 0.8rem;">/ 10</div></div>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed;">{scores.get("technical", 0)}</div><div style="color: #94a3b8; font-size: 0.8rem;">/ 10</div></div>', unsafe_allow_html=True)
-            with c3: st.markdown(f'<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed;">{scores.get("sentiment", 0)}</div><div style="color: #94a3b8; font-size: 0.8rem;">/ 10</div></div>', unsafe_allow_html=True)
+            # Color logic for metric cards
+            def get_score_color(val):
+                if val >= 7: return "#059669" # Green
+                if val >= 4: return "#d97706" # Yellow/Orange
+                return "#dc2626" # Red
 
-            analysis = res.get("analysis", "No analysis available.")
+            f_color = get_score_color(scores.get("fundamental", 0))
+            t_color = get_score_color(scores.get("technical", 0))
+            s_color = get_score_color(scores.get("sentiment", 0))
+
+            c1, c2, c3 = st.columns(3)
+            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.8rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.8rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.8rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            # The .analysis-text class is applied via a wrapper div
-            st.markdown(f'<div class="analysis-text">', unsafe_allow_html=True)
-            st.markdown(analysis)
-            st.markdown('</div>', unsafe_allow_html=True)
+            # Parsing the LLM report into sectioned cards
+            full_report = res.get("analysis", "")
+            
+            # We split by '---' to separate segments
+            segments = full_report.split("---")
+            
+            for segment in segments:
+                segment = segment.strip()
+                if not segment: continue
+                
+                # Check for headers to style the card
+                if "FUNDAMENTAL ANALYSIS" in segment:
+                    st.markdown('<div class="analysis-card"><div class="section-header">📊 Fundamental Analysis</div>', unsafe_allow_html=True)
+                    st.markdown(segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip())
+                    st.markdown('</div>', unsafe_allow_html=True)
+                elif "TECHNICAL ANALYSIS" in segment:
+                    st.markdown('<div class="analysis-card"><div class="section-header">📈 Technical Indicators</div>', unsafe_allow_html=True)
+                    st.markdown(segment.replace("**TECHNICAL ANALYSIS**", "").strip())
+                    st.markdown('</div>', unsafe_allow_html=True)
+                elif "SENTIMENT ANALYSIS" in segment:
+                    st.markdown('<div class="analysis-card"><div class="section-header">💬 Market Sentiment Insights</div>', unsafe_allow_html=True)
+                    st.markdown(segment.replace("**SENTIMENT ANALYSIS**", "").strip())
+                    st.markdown('</div>', unsafe_allow_html=True)
+                elif "AI NARRATIVE SUMMARY" in segment:
+                    st.markdown('<div class="analysis-card"><div class="section-header">🤖 AI Narrative Summary</div>', unsafe_allow_html=True)
+                    st.markdown(segment.replace("**AI NARRATIVE SUMMARY**", "").strip())
+                    st.markdown('</div>', unsafe_allow_html=True)
+                elif "FINAL RECOMMENDATION" in segment:
+                    rec_text = segment.replace("**FINAL RECOMMENDATION**", "").strip().upper()
+                    
+                    # Recommendation color logic
+                    rec_bg = "#fef2f2" # Light Red
+                    rec_border = "#fecaca"
+                    rec_text_color = "#dc2626"
+                    
+                    if "BUY" in rec_text:
+                        rec_bg = "#ecfdf5" # Light Green
+                        rec_border = "#d1fae5"
+                        rec_text_color = "#059669"
+                    elif "HOLD" in rec_text:
+                        rec_bg = "#fffbeb" # Light Yellow
+                        rec_border = "#fef3c7"
+                        rec_text_color = "#d97706"
+                    
+                    st.markdown(f"""
+                        <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color};">
+                            Final Recommendation: {rec_text.replace("**", "").replace("RECOMMENDATION:", "").strip()}
+                        </div>
+                    """, unsafe_allow_html=True)
 
 
 else:
