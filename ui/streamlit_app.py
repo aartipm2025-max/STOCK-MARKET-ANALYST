@@ -172,19 +172,21 @@ def call_market_api(query, mode=None, force_integrated=False):
 
 # ── Header & Branding ────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align: center; margin-bottom: 2rem;">
-    <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">⚡ Market Analyst AI</h1>
+<div style="text-align: center; margin-bottom: 1.5rem;">
+    <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">Market Analyst AI</h1>
     <p style="color: #64748b; font-size: 1.1rem;">Multi-agent AI system for Indian stock market analysis</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Analysis Mode Bar ────────────────────────────────────────────────────────
-analysis_mode = st.radio(
-    "Select Mode",
-    ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
-    horizontal=True,
-    label_visibility="collapsed"
-)
+# ── Analysis Mode Bar (Centered) ─────────────────────────────────────────────
+mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
+with mode_col2:
+    analysis_mode = st.radio(
+        "Select Mode",
+        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
