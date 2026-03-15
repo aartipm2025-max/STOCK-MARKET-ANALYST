@@ -121,7 +121,6 @@ div[data-testid="stVerticalBlock"] > div:has(.content-container) {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar Navigation ────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### Navigation")
     analysis_mode = st.radio(
@@ -129,6 +128,10 @@ with st.sidebar:
         ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
         index=0
     )
+    st.markdown("---")
+    st.markdown("### Stock Suggestions")
+    st.info("Try analyzing these:")
+    st.markdown("- **Reliance**\n- **TCS**\n- **Infosys**\n- **HDFC Bank**\n- **Eternal (Zomato)**")
 
 use_integrated = True
 api_url_setting = "http://localhost:8000"
