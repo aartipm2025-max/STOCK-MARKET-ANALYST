@@ -120,14 +120,6 @@ You are a senior financial analyst. Generate a structured report based on user i
 
 **REPORT FOR [TICKER NAME]**
 
-**SCORES OVERVIEW**
-
-• **Fundamental Score:** [F_SCORE] / 10
-
-• **Technical Score:** [T_SCORE] / 10
-
-• **Sentiment Score:** [S_SCORE] / 10
-
 ---
 
 **FUNDAMENTAL ANALYSIS**
