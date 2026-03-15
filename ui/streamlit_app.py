@@ -28,143 +28,122 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Custom CSS for Premium UI ───────────────────────────────────────────────────
+# ── Custom CSS for Premium NVST-Style UI ──────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-/* Dark Mode Theme */
+/* Main Container */
+.main {
+    background-color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 [data-testid="stAppViewContainer"] {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
+    background-color: #f1f5f9;
 }
 
-[data-testid="stHeader"] {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-}
-
-/* Sidebar Styling - Higher Contrast */
-[data-testid="stSidebar"] {
-    background-color: #1e293b !important;
-    border-right: 1px solid #334155 !important;
-    color: #f8fafc !important;
-}
-
-.sidebar-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #38bdf8 !important; /* Bright Blue */
+/* Custom Header Bar */
+.top-nav {
+    background-color: #7c3aed; /* Deep Lavender */
+    padding: 0.75rem 2rem;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-}
-
-.sidebar-subtitle {
-    font-size: 0.85rem;
-    color: #cbd5e1 !important;
+    border-radius: 0 0 15px 15px;
     margin-bottom: 2rem;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Main Content Header - Bright White */
-.stock-header {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #ffffff !important;
+.brand {
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+/* Metrics Bar */
+.metric-row {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 1.5rem;
-    text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
-/* Score Cards - High Contrast */
-.score-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-}
-
-.score-card:hover {
-    transform: translateY(-5px);
-    border-color: #38bdf8;
-}
-
-.score-label {
-    font-size: 0.85rem;
-    color: #cbd5e1 !important;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.score-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #facc15 !important; /* Bright Yellow */
-}
-
-.score-denom {
-    font-size: 1rem;
-    color: #94a3b8 !important;
-}
-
-/* Analysis Content - Bright White */
-.analysis-text {
-    font-size: 1.15rem;
-    line-height: 1.7;
-    color: #ffffff !important;
-    background: rgba(30, 41, 59, 0.5);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border-left: 4px solid #38bdf8;
-}
-
-/* Metric Items - High Visibility */
-.metric-item-label {
-    font-size: 0.9rem;
-    color: #94a3b8 !important;
-    font-weight: 500;
-}
-
-.metric-item-value {
-    font-size: 1.5rem;
+.metric-value {
+    font-size: 2.2rem;
     font-weight: 700;
-    color: #ffffff !important;
+    color: #1e293b;
 }
 
-h1, h2, h3, h4, h5, h6, label, p {
-    color: #ffffff !important;
-}
-
-.stTabs [data-baseweb="tab-list"] {
-    gap: 10px;
-}
-
-.stTabs [data-baseweb="tab"] {
-    background-color: transparent;
-    color: #94a3b8 !important;
+.gain-positive {
+    color: #10b981 !important;
     font-weight: 600;
 }
 
-.stTabs [aria-selected="true"] {
-    color: #38bdf8 !important;
+.gain-negative {
+    color: #ef4444 !important;
+    font-weight: 600;
 }
 
-/* Chat Input styling at bottom */
+/* Cards & Tables */
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    height: 100%;
+    border: 1px solid #e2e8f0;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Sentiment Feed (Right Side) */
+.feed-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1rem 0;
+}
+
+.user-tag {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.tweet-text {
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Recommendation Cards */
+.rec-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    min-width: 200px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Inputs */
 .stTextInput input {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    border: 1px solid #334155 !important;
     border-radius: 8px !important;
-    padding: 12px !important;
-    font-size: 1.1rem !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
-.stTextInput input:focus {
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
-}
-
+/* Hide Sidebar elements for cleaner look */
+[data-testid="stSidebarNav"] {display: none;}
 </style>
+""", unsafe_allow_html=True)
 """, unsafe_allow_html=True)
 
 # ── Sidebar Setup ─────────────────────────────────────────────────────────────
@@ -233,6 +212,47 @@ def call_market_api(query, mode=None, force_integrated=False):
         st.error(f"Integrated Agent Error: {e}")
         return None
 
+# ── Header Section ────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="top-nav">
+    <div class="brand">NVST</div>
+    <div style="display: flex; gap: 20px; font-weight: 500;">
+        <span>Dashboard</span>
+        <span>Trade</span>
+        <span>Accounts</span>
+        <span>Market Insights</span>
+    </div>
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <span style="font-size: 0.9rem;">Search...</span>
+        <div style="width: 32px; height: 32px; background: #ddd; border-radius: 50%;"></div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Metrics Bar ──────────────────────────────────────────────────────────────
+col_m1, col_m2, col_m3, col_m4 = st.columns([2, 1, 1, 1])
+with col_m1:
+    st.markdown("""
+    <div class="metric-row">
+        <div style="font-size: 0.85rem; color: #64748b;">Your Portfolio Value</div>
+        <div class="metric-value">₹15,036.67</div>
+    </div>
+    """, unsafe_allow_html=True)
+with col_m2:
+    st.markdown("""
+    <div class="metric-row">
+        <div style="font-size: 0.85rem; color: #64748b;">Today's Gain</div>
+        <div class="gain-positive">+₹85.87 (1.35%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+with col_m3:
+    st.markdown("""
+    <div class="metric-row">
+        <div style="font-size: 0.85rem; color: #64748b;">Total Gain</div>
+        <div class="gain-positive">+₹843.70 (7.35%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 # ── Content Logic ─────────────────────────────────────────────────────────────
 if st.session_state.results:
     res = st.session_state.results
@@ -240,9 +260,11 @@ if st.session_state.results:
     tickers = res.get("tickers", [])
     agg_data_list = res.get("aggregated_data", [])
     
-    # Header
-    main_title = tickers[0] if len(tickers) == 1 else ("Comparison" if intent == "comparison" else "Market Analysis")
-    st.markdown(f'<div class="stock-header">📈 {main_title}</div>', unsafe_allow_html=True)
+    # Dash Layout
+    main_col, feed_col = st.columns([2.5, 1])
+    
+    with main_col:
+        st.markdown(f"### 📈 {tickers[0] if tickers else 'Analysis Dashboard'}")
     
     if agg_data_list:
         if intent == "comparison":
@@ -269,76 +291,47 @@ if st.session_state.results:
                 for item in agg_data_list:
                     st.write(f"- {item['ticker']}: {item['final_score']}/10 ({item['recommendation']})")
             
-        else: # Single Stock or Unknown with data
+        else: 
             raw_data = agg_data_list[0]
             scores = raw_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown(f'<div class="score-card"><div class="score-label">Fundamental</div><div class="score-value">{scores.get("fundamental", 0)} <span class="score-denom">/ 10</span></div></div>', unsafe_allow_html=True)
-            with col2:
-                st.markdown(f'<div class="score-card"><div class="score-label">Technical</div><div class="score-value">{scores.get("technical", 0)} <span class="score-denom">/ 10</span></div></div>', unsafe_allow_html=True)
-            with col3:
-                st.markdown(f'<div class="score-card"><div class="score-label">Sentiment</div><div class="score-value">{scores.get("sentiment", 0)} <span class="score-denom">/ 10</span></div></div>', unsafe_allow_html=True)
+            st.markdown("""<div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: #475569;">Performance Overview</div>""", unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+            with c1: st.markdown(f'<div class="card"><div style="color: #64748b; font-size: 0.8rem;">FUNDAMENTAL</div><div style="font-size: 1.5rem; font-weight: 700;">{scores.get("fundamental", 0)}/10</div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div class="card"><div style="color: #64748b; font-size: 0.8rem;">TECHNICAL</div><div style="font-size: 1.5rem; font-weight: 700;">{scores.get("technical", 0)}/10</div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="card"><div style="color: #64748b; font-size: 0.8rem;">SENTIMENT</div><div style="font-size: 1.5rem; font-weight: 700;">{scores.get("sentiment", 0)}/10</div></div>', unsafe_allow_html=True)
 
-        # Tabs for detailed metrics (only for relevant tickers)
-        if intent in ["single_stock", "comparison"]:
-            st.subheader("Metric Deep Dive")
-            # If comparison, let user pick which one to see in detail
-            target_ticker = st.selectbox("Select ticker for details", tickers) if len(tickers) > 1 else tickers[0]
-            target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), None)
-            
-            if target_data:
-                tab_fund, tab_tech, tab_sent = st.tabs(["Fundamentals", "Technicals", "Sentiment"])
-                with tab_fund:
-                    f_metrics = target_data.get("raw_metrics", {}).get("f", {}).get("metrics", {})
-                    if f_metrics:
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">PE Ratio</div><div class="metric-item-value">{f_metrics.get("pe_ratio", "N/A")}</div></div>', unsafe_allow_html=True)
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">EPS Growth</div><div class="metric-item-value">{f_metrics.get("eps_growth", 0)*100:.1f}%</div></div>', unsafe_allow_html=True)
-                        with c2:
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">Revenue Growth</div><div class="metric-item-value">{f_metrics.get("revenue_growth", 0)*100:.1f}%</div></div>', unsafe_allow_html=True)
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">Debt/Equity</div><div class="metric-item-value">{f_metrics.get("debt_to_equity", "N/A")}</div></div>', unsafe_allow_html=True)
-                    else: st.info("No fundamental metrics.")
-                with tab_tech:
-                    t_metrics = target_data.get("raw_metrics", {}).get("t", {}).get("indicators", {})
-                    if t_metrics:
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">Price</div><div class="metric-item-value">{t_metrics.get("current_price", "N/A")}</div></div>', unsafe_allow_html=True)
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">RSI</div><div class="metric-item-value">{t_metrics.get("rsi", "N/A")}</div></div>', unsafe_allow_html=True)
-                        with c2:
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">SMA 50</div><div class="metric-item-value">{t_metrics.get("sma_50", "N/A")}</div></div>', unsafe_allow_html=True)
-                            st.markdown(f'<div class="metric-item"><div class="metric-item-label">MACD</div><div class="metric-item-value">{t_metrics.get("macd_signal", "N/A")}</div></div>', unsafe_allow_html=True)
-                    else: st.info("No technical indicators.")
-                with tab_sent:
-                    s_metrics = target_data.get("raw_metrics", {}).get("s", {})
-                    if s_metrics:
-                        st.markdown(f"**Score: {s_metrics.get('sentiment_score', 5.0)}/10**")
-                        st.write(s_metrics.get("summary", "No details."))
-                    else: st.info("No sentiment data.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"### AI Narrative Summary")
+        st.markdown(f"""<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.6;">{res.get("analysis", "")}</div>""", unsafe_allow_html=True)
 
-    # Narrative Summary
-    st.subheader("AI Recommendation Report")
-    st.markdown(f'<div class="analysis-text">{res.get("analysis", "")}</div>', unsafe_allow_html=True)
+    with feed_col:
+        st.markdown("""<div class="card"><div class="card-title">Market Sentiment</div>
+        <div class="feed-item"><span class="user-tag">@MarketWatch</span><br><span class="tweet-text">Nifty shows strong resistance at 22,500. Bulls looking for a breakout.</span></div>
+        <div class="feed-item"><span class="user-tag">@FinIntel</span><br><span class="tweet-text">Tech stocks leading the rally today after positive global cues.</span></div>
+        <div class="feed-item"><span class="user-tag">@AnalystLisa</span><br><span class="tweet-text">Keep an eye on banking sector results tomorrow. Expecting volatility.</span></div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### Recommendations for you")
+    rc1, rc2, rc3, rc4 = st.columns(4)
+    with rc1: st.markdown('<div class="rec-card"><div style="font-weight:700;">TITAN</div><div style="color:#10b981;">₹3,450 (+2.1%)</div><div style="font-size:0.75rem; color:#64748b;">91% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc2: st.markdown('<div class="rec-card"><div style="font-weight:700;">RELIANCE</div><div style="color:#10b981;">₹2,980 (+0.8%)</div><div style="font-size:0.75rem; color:#64748b;">84% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc3: st.markdown('<div class="rec-card"><div style="font-weight:700;">HDFCBANK</div><div style="color:#ef4444;">₹1,420 (-0.5%)</div><div style="font-size:0.75rem; color:#64748b;">76% Analysts Buy</div></div>', unsafe_allow_html=True)
+    with rc4: st.markdown('<div class="rec-card"><div style="font-weight:700;">ASIANPAINT</div><div style="color:#10b981;">₹3,120 (+1.2%)</div><div style="font-size:0.75rem; color:#64748b;">92% Analysts Buy</div></div>', unsafe_allow_html=True)
 
 else:
-    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: #ffffff;'>Ready to analyze the market?</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94a3b8;'>Select a mode on the left and enter your query below.</p>", unsafe_allow_html=True)
+    st.markdown("<br><br><br><br><div style='text-align: center;'><h2 style='color: #475569;'>Welcome back, Aarti</h2><p style='color: #64748b;'>Enter a stock name or a question to start your analysis.</p></div>", unsafe_allow_html=True)
 
 # ── Footer / Input ────────────────────────────────────────────────────────────
-st.markdown("<br><br>", unsafe_allow_html=True)
-
-with st.form("query_form", clear_on_submit=True):
-    col_in, col_btn = st.columns([5, 1])
-    with col_in:
-        user_query = st.text_input("Enter your query", placeholder="e.g. Analyze Reliance Industries", label_visibility="collapsed")
-    with col_btn:
-        submit_btn = st.form_submit_button("Analyze")
+st.markdown("<br>", unsafe_allow_html=True)
+with st.container():
+    user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder="e.g. Compare TCS and Infosys")
+    sub_col1, sub_col2 = st.columns([5, 1])
+    with sub_col2:
+        submit_btn = st.button("Generate Analysis", use_container_width=True)
 
 if submit_btn and user_query:
-    st.session_state.results = None  # Clear previous results
+    st.session_state.results = None
     with st.spinner("🤖 AI Agents at work..."):
         st.session_state.results = call_market_api(user_query, mode=analysis_mode, force_integrated=use_integrated)
         st.rerun()
