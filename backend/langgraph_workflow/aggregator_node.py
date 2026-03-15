@@ -118,13 +118,13 @@ You are a senior financial analyst. Generate a structured report based on user i
 
 #### MANDATORY OUTPUT STRUCTURE (Use this exact format for each ticker):
 
-STOCK: **[TICKER NAME]**
+**REPORT FOR [TICKER NAME]**
 
-**SCORES**
+**SCORES OVERVIEW**
 
-Fundamental: **[F_SCORE]** / 10
-Technical: **[T_SCORE]** / 10
-Sentiment: **[S_SCORE]** / 10
+• **Fundamental Score:** [F_SCORE] / 10
+• **Technical Score:** [T_SCORE] / 10
+• **Sentiment Score:** [S_SCORE] / 10
 
 ---
 

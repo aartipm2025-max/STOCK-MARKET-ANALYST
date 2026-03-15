@@ -216,11 +216,6 @@ if st.session_state.results:
 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Detailed Report Section
-            # We use a standard markdown block for best formatting compatibility
-            # but wrap it in our centered content-container logic.
-            st.markdown(f"### 📋 Analysis Report: **{target_ticker}**")
-            
             analysis = res.get("analysis", "No analysis available.")
             
             # The .analysis-text class is applied via a wrapper div
