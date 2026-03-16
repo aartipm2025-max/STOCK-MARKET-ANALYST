@@ -17,3 +17,5 @@ test_master_node.py
 test_news.py
 test_phase*.py
 test_production.py
+test_keys.py
+backend/cache/*.json

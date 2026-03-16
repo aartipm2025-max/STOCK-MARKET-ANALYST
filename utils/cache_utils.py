@@ -5,7 +5,9 @@ from utils.logger import get_logger
 
 logger = get_logger("cache_utils")
 
-CACHE_DIR = "backend/cache"
+# Resolve absolute path so cache works on both local and Streamlit Cloud
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_DIR = os.path.join(_BASE_DIR, "backend", "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 def get_cache_key(ticker: str) -> str:
