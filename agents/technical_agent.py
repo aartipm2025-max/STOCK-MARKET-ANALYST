@@ -12,7 +12,18 @@ def analyze_technicals(ticker: str) -> dict:
         df = stock.history(period="1y")
         
         if df.empty or len(df) < 20: 
-            return {"error": "DATA_NOT_AVAILABLE", "details": "Insufficient historical data"}
+            return {
+                "agent": "technical", "ticker": ticker,
+                "latest_data_date": "Unavailable",
+                "indicators": {
+                    "current_price": 0.0,
+                    "rsi_interpretation": "Insufficient data for RSI calculation",
+                    "sma_50_interpretation": "Historical data not sufficient for moving average analysis",
+                    "sma_200_interpretation": "Historical data not sufficient for long-term trend analysis",
+                    "macd_signal": "neutral", "volume_trend": "Unavailable"
+                },
+                "technical_score": 2.5
+            }
 
         # Compute Indicators
         df['SMA_50'] = df['Close'].rolling(window=min(len(df), 50)).mean()
@@ -54,18 +65,18 @@ def analyze_technicals(ticker: str) -> dict:
 
         price = latest['Close']
         sma_50 = latest['SMA_50']
-        sma_50_desc = "Data not available"
+        sma_50_desc = f"Insufficient data for 50-day moving average — price trending at {round(price, 2)}"
         if not pd.isna(sma_50):
             status = "above" if price > sma_50 else "below"
             sentiment = "bullish" if price > sma_50 else "bearish"
-            sma_50_desc = f"Price is trading {status} the 50-day moving average, indicating {sentiment} momentum."
+            sma_50_desc = f"Price is trading {status} the 50-day moving average ({round(sma_50, 2)}), indicating {sentiment} momentum."
 
         sma_200 = latest['SMA_200']
-        sma_200_desc = "Data not available"
+        sma_200_desc = f"Insufficient data for 200-day moving average — monitoring short-term trend at {round(price, 2)}"
         if not pd.isna(sma_200):
             status = "above" if price > sma_200 else "below"
             sentiment = "long-term bullish" if price > sma_200 else "long-term bearish"
-            sma_200_desc = f"Price is trading {status} the 200-day moving average, showing {sentiment} trend."
+            sma_200_desc = f"Price is trading {status} the 200-day moving average ({round(sma_200, 2)}), showing {sentiment} trend."
 
         return {
             "agent": "technical",
@@ -83,4 +94,16 @@ def analyze_technicals(ticker: str) -> dict:
         }
     except Exception as e:
         logger.error(f"Technical analysis failed for {ticker}: {e}")
-        return {"error": f"DATA_NOT_AVAILABLE: {str(e)}"}
+        return {
+            "agent": "technical", "ticker": ticker,
+            "latest_data_date": "Unavailable",
+            "indicators": {
+                "current_price": 0.0,
+                "rsi_interpretation": "Technical data temporarily unavailable — markets may be closed or data delayed",
+                "sma_50_interpretation": "Moving average data temporarily unavailable — unable to confirm current trend direction",
+                "sma_200_interpretation": "Long-term moving average data temporarily unavailable",
+                "macd_signal": "neutral",
+                "volume_trend": "Unavailable"
+            },
+            "technical_score": 2.5
+        }

@@ -155,9 +155,20 @@ def analyze_fundamentals(ticker: str) -> dict:
     except Exception as e:
         print(f"ERROR: Fundamental Agent failed for {ticker}: {e}")
         logger.error(f"Fundamental analysis failed for {ticker}: {e}")
+        info_fallback = {}
+        try:
+            info_fallback = yf.Ticker(ticker).info or {}
+        except: pass
         return {
             "agent": "fundamental",
             "ticker": ticker,
-            "metrics": {"error": "DATA_NOT_AVAILABLE"},
+            "metrics": {
+                "long_name": info_fallback.get("longName", ticker),
+                "revenue_growth": "Fundamental data could not be retrieved from the data source. Evaluation is based on available market indicators.",
+                "pe_ratio": info_fallback.get("trailingPE", "Unavailable"),
+                "roe": info_fallback.get("returnOnEquity", "Unavailable"),
+                "debt_to_equity": info_fallback.get("debtToEquity", "Unavailable"),
+                "operating_margin": info_fallback.get("operatingMargins", "Unavailable"),
+            },
             "fundamental_score": 0.0
         }

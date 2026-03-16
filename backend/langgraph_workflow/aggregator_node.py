@@ -170,8 +170,12 @@ def summarize_results(state: dict) -> dict:
         s_score = sentiment.get(ticker, {}).get("sentiment_score", 0.0)
         m_score = market_context.get(ticker, {}).get("market_context_score", 0.0)
         
-        # Final Score & Confidence (40% Fundamental, 30% Technical, 30% Sentiment)
-        final_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
+        # Dynamic weight allocation — if fundamental data is missing, redistribute weight to technical + sentiment
+        if f_score > 0:
+            final_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
+        else:
+            # No fundamental data — weight technical 50%, sentiment 50%
+            final_score = (0.5 * t_score) + (0.5 * s_score)
         confidence_pct = round(final_score * 10, 1)
 
         # Recommendation logic
