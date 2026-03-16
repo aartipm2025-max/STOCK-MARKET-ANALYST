@@ -190,9 +190,12 @@ def call_market_api(query, mode=None, force_integrated=False):
 st.markdown('<div class="content-container">', unsafe_allow_html=True)
 
 # ── Header & Greeting ─────────────────────────────────────────────────────────
-st.markdown("<br>", unsafe_allow_html=True)
-st.title("Market Analyst AI")
-st.caption("Multi-agent AI system for Indian stock market analysis")
+st.markdown("""
+<div style="text-align: center; margin-top: 1rem; margin-bottom: 1rem;">
+    <h1 style="color: #7c3aed; font-weight: 800; font-size: 3.5rem; margin-bottom: 0.5rem;">Market Analyst AI</h1>
+    <p style="color: #64748b; font-size: 1.1rem; margin-top: 0.5rem;">Multi-agent AI system for Indian stock market analysis</p>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("<div style='height: 1rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
