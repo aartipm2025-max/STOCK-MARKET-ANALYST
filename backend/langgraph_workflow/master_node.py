@@ -74,7 +74,7 @@ Output Format (STRICT JSON ONLY, NO PREAMBLE):
 def master_node_func(state: dict) -> dict:
     """Master node logic to process initial query and routing."""
     query = state.get("query", "")
-    mode = state.get("mode", "Chat")
+    mode = state.get("mode", "Single Stock")
     
     parsed = parse_query_and_intent(query)
     

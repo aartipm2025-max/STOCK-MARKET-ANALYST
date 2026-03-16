@@ -126,7 +126,7 @@ with st.sidebar:
     st.markdown("### Navigation")
     analysis_mode = st.radio(
         "Select Mode",
-        ["Chat", "Single Stock", "Compare Stocks", "Portfolio"],
+        ["Single Stock", "Compare Stocks", "Portfolio"],
         index=0
     )
     st.markdown("---")
@@ -153,7 +153,7 @@ def call_market_api(query, mode=None, force_integrated=False):
     if not force_integrated:
         endpoint = f"{api_url_setting}/analyze"
         try:
-            response = requests.post(endpoint, json={"query": query, "mode": mode or "Chat"}, timeout=5) # Short timeout for check
+            response = requests.post(endpoint, json={"query": query, "mode": mode or "Single Stock"}, timeout=5) # Short timeout for check
             if response.status_code == 200:
                 return response.json()
         except:
@@ -164,7 +164,7 @@ def call_market_api(query, mode=None, force_integrated=False):
         graph = build_graph()
         initial_state = {
             "query": query,
-            "mode": mode or "Chat",
+            "mode": mode or "Single Stock",
             "intent": "",
             "tickers": [],
             "fundamental_data": {},
@@ -368,7 +368,7 @@ else:
     # Perfectly Centered Search Container
     c1, c2, c3 = st.columns([1, 3, 1])
     with c2:
-        placeholder_text = "e.g. What is a PE ratio?"
+        placeholder_text = "e.g. Reliance"
         if analysis_mode == "Single Stock":
             placeholder_text = "e.g. Reliance"
         elif analysis_mode == "Compare Stocks":

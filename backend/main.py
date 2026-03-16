@@ -23,7 +23,7 @@ app = FastAPI(title="Multi-Agent Market Analyst API", lifespan=lifespan)
 
 class QueryRequest(BaseModel):
     query: str
-    mode: str = "Chat"
+    mode: str = "Single Stock"
 
 class QueryResponse(BaseModel):
     intent: str
