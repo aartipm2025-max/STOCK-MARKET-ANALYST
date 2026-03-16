@@ -131,9 +131,10 @@ def summarize_results(state: dict) -> dict:
     
     template = """
 ### INSTITUTIONAL FINANCIAL RESEARCH REPORT GENERATOR
-You are a senior equity research analyst at a top-tier hedge fund. Generate a professional, highly reliable, and non-duplicated report.
+You are a senior equity research analyst at a top-tier hedge fund. 
+Your task is to generate a professional, highly reliable, and non-duplicated report based ONLY on the provided Agent Data.
 
-#### MANDATORY REPORT STRUCTURE (Strict Order):
+---
 
 **REPORT FOR [TICKER NAME]**
 Analysis Date: [LATEST DATE FROM DATA]
@@ -141,52 +142,60 @@ Analysis Date: [LATEST DATE FROM DATA]
 ---
 
 **FUNDAMENTAL ANALYSIS**
-Analyze these core metrics with financial reasoning:
-• **Revenue Growth:** [State value and explain performance]
-• **P/E Ratio:** [State value and explain valuation context]
-• **Return on Equity:** [State value and explain capital efficiency]
-• **Debt-to-Equity:** [State value and explain risk profile]
-• **Operating Margin:** [State value and explain operational efficiency]
+• **Revenue Growth:** [Insight]
+
+• **P/E Ratio:** [Insight]
+
+• **Return on Equity:** [Insight]
+
+• **Debt-to-Equity:** [Insight]
+
+• **Operating Margin:** [Insight]
 
 ---
 
 **TECHNICAL ANALYSIS**
-Translate these indicators into market trend interpretations:
-• **RSI:** [Status and market interpretation]
-• **MACD:** [Current trend momentum]
-• **Moving Averages:** [Relationship between price and SMAs]
+• **RSI:** [Insight]
+
+• **MACD:** [Insight]
+
+• **Moving Averages:** [Insight]
 
 ---
 
 **SENTIMENT ANALYSIS**
-Provide institutional-grade market mood analysis:
-• **Market Sentiment:** [Calculated tone from news]
-• **Risk/Confidence Drivers:** [What is currently moving price action]
+• **Market Sentiment:** [Insight]
+
+• **Risk/Confidence Drivers:** [Insight]
 
 ---
 
 **MARKET CONTEXT**
-Analyze the broader environment using 'm' data:
-• **Nifty 50 Trend:** [Explain index performance impact]
-• **Sector Performance:** [Relative strength of the industry]
-• **Peer Comparison:** [How stock compares to industry peers]
+• **Nifty 50 Trend:** [Insight]
+
+• **Sector Performance:** [Insight]
+
+• **Peer Comparison:** [Insight]
 
 ---
 
 **AI NARRATIVE SUMMARY**
-Synthesize all agent inputs into a coherent investment thesis:
-• **Growth Outlook:** [Synthesized expectation]
-• **Key Strengths:** [Primary competitive advantages]
-• **Key Risks:** [Primary headwinds]
+• **Growth Outlook:** [Insight]
+
+• **Key Strengths:** [Insight]
+
+• **Key Risks:** [Insight]
 
 ---
 
 **RISK FACTORS**
-Identify and explain primary investment risks:
-• **Technical Risk:** [Based on momentum/volatility]
-• **Fundamental Risk:** [Based on financial health/metrics]
-• **Market Risk:** [Based on macro/index trends]
-• **Industry Risk:** [Sector specific headwinds]
+• **Technical Risk:** [Insight]
+
+• **Fundamental Risk:** [Insight]
+
+• **Market Risk:** [Insight]
+
+• **Industry Risk:** [Insight]
 
 ---
 
@@ -197,20 +206,23 @@ Confidence Level: {confidence_placeholder}
 ---
 
 **INVESTMENT HORIZON**
-• **Short-Term Outlook:** [Explanation based on technical signals and momentum]
-• **Long-Term Outlook:** [Explanation based on fundamentals and macro sentiment]
+• **Short-Term Outlook:** [Insight]
+
+• **Long-Term Outlook:** [Insight]
 
 ---
 
 #### CRITICAL RULES:
-1. PROFESSIONAL TONE: Use formal financial terminology.
-2. NO RAW DATA DUMPS: Interpret the numbers provided in the 'Agent Data'.
-3. FORMATTING: Use bolding for metrics and headers. Use exactly two newlines between bullets.
-4. RECOMMENDATION: Bold the final call. Include the "Confidence Level" provided.
+1. OUTPUT ONLY ANALYSIS: Do not include internal prompt instructions like "Analyze these core metrics" or "Translate these indicators" in your response headers or content.
+2. BULLET FORMATTING: Every insight must start on a NEW line with the '•' symbol. 
+3. LINE SPACING: Ensure exactly TWO newline characters between each bullet point to prevent inline collapse.
+4. PROFESSIONAL TONE: Use formal financial terminology. NO data dumps; interpret the 'Agent Data'.
 5. NO DUPLICATION: Each section must be unique and non-repetitive.
+6. RECOMMENDATION: Bold the final call as requested.
 
 Agent Data:
 {data_for_llm}
+"""
 """
     prompt = PromptTemplate(template=template, input_variables=["data_for_llm", "confidence_placeholder"])
     

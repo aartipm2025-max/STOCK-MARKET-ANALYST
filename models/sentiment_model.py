@@ -40,8 +40,9 @@ Output MUST be a single JSON object (STRICT JSON ONLY, NO PREAMBLE):
         neg = result.get("negative", 0)
         total = pos + neu + neg
         
-        # sentiment_score = (positive_ratio) * 10
-        score = (pos / total * 10) if total > 0 else 5.0
+        # sentiment_score mapping: Positive=10, Neutral=5, Negative=0
+        # Positive: 7-10, Neutral: 4-6, Negative: 0-3
+        score = ((pos * 10.0 + neu * 5.0 + neg * 0.0) / total) if total > 0 else 5.0
         
         return {
             "sentiment_score": round(score, 2),
