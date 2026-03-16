@@ -82,12 +82,14 @@ def master_node_func(state: dict) -> dict:
     tickers = parsed["tickers"]
     
     # CRITICAL: Override intent based on explicit UI mode selection
-    if mode == "Single Stock":
-        intent = "single_stock"
-    elif mode == "Compare Stocks":
-        intent = "comparison"
-    elif mode == "Portfolio":
-        intent = "portfolio"
+    # Only override if we didn't hit a hard API/Parsing error
+    if not parsed.get("error") and intent not in ["error_quota", "error_general"]:
+        if mode == "Single Stock":
+            intent = "single_stock"
+        elif mode == "Compare Stocks":
+            intent = "comparison"
+        elif mode == "Portfolio":
+            intent = "portfolio"
     
     logger.info(f"Final resolved intent after UI mode override: {intent}")
         
