@@ -224,6 +224,62 @@ if st.session_state.results:
         </div>
     """, unsafe_allow_html=True)
 
+    # Parsing the LLM report into sectioned cards (Moved Up)
+    full_report = res.get("analysis", "")
+    segments = full_report.split("---")
+    report_sections = {
+        "fundamental": None, "technical": None, "sentiment": None,
+        "market_context": None, "narrative": None, "risks": None,
+        "recommendation": None, "horizon": None
+    }
+    
+    for segment in segments:
+        seg_upper = segment.upper().strip()
+        if "FUNDAMENTAL ANALYSIS" in seg_upper:
+            report_sections["fundamental"] = segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip()
+        elif "TECHNICAL ANALYSIS" in seg_upper:
+            report_sections["technical"] = segment.replace("**TECHNICAL ANALYSIS**", "").strip()
+        elif "SENTIMENT ANALYSIS" in seg_upper:
+            report_sections["sentiment"] = segment.replace("**SENTIMENT ANALYSIS**", "").strip()
+        elif "MARKET CONTEXT" in seg_upper:
+            report_sections["market_context"] = segment.replace("**MARKET CONTEXT**", "").strip()
+        elif "AI NARRATIVE SUMMARY" in seg_upper:
+            report_sections["narrative"] = segment.replace("**AI NARRATIVE SUMMARY**", "").strip()
+        elif "RISK FACTORS" in seg_upper:
+            report_sections["risks"] = segment.replace("**RISK FACTORS**", "").strip()
+        elif "FINAL RECOMMENDATION" in seg_upper:
+            report_sections["recommendation"] = segment.replace("**FINAL RECOMMENDATION**", "").strip()
+        elif "INVESTMENT HORIZON" in seg_upper:
+            report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
+
+    # 1. Final Recommendation (Now at the Top)
+    if report_sections["recommendation"]:
+        with st.container():
+            rec_lines = report_sections["recommendation"].split("\n")
+            rec_call = rec_lines[0].replace("**", "").strip()
+            conf_level = "N/A"
+            for line in rec_lines:
+                if "Confidence Level:" in line:
+                    conf_level = line.replace("Confidence Level:", "").strip()
+                    break
+            
+            rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626" # Default Avoid
+            if "STRONG BUY" in rec_call or "BUY" in rec_call:
+                rec_bg, rec_border, rec_text_color = "#ecfdf5", "#d1fae5", "#059669"
+            elif "HOLD" in rec_call:
+                rec_bg, rec_border, rec_text_color = "#fffbeb", "#fef3c7", "#d97706"
+            
+            st.markdown(f"""
+                <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem;">
+                    <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
+                    <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
+                        Confidence Level: {conf_level}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        st.divider()
+
     # Upgrade 3: Stock Price Chart
     try:
         if tickers:
@@ -262,74 +318,10 @@ if st.session_state.results:
             st.markdown("<br>", unsafe_allow_html=True)
 
         if len(agg_data_list) > 0:
-            # Main Score Overview (Horizontal Metrics Row)
+            # Deep dive selection and score dashboard
             target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
             target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
             scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
-            
-            # Color logic for metric cards
-            def get_score_color(val):
-                if val >= 7: return "#059669" # Green
-                if val >= 4: return "#d97706" # Yellow/Orange
-                return "#dc2626" # Red
-
-            f_color = get_score_color(scores.get("fundamental", 0))
-            t_color = get_score_color(scores.get("technical", 0))
-            s_color = get_score_color(scores.get("sentiment", 0))
-            m_color = get_score_color(scores.get("market_context", 0))
-
-            c1, c2, c3, c4 = st.columns(4)
-            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
-            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
-            with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
-
-            # Upgrade 5: Rating Summary Panel
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### RATING SUMMARY")
-            r1, r2, r3, r4 = st.columns(4)
-            r1.metric("Fundamental", scores.get("fundamental", 0))
-            r2.metric("Technical", scores.get("technical", 0))
-            r3.metric("Sentiment", scores.get("sentiment", 0))
-            r4.metric("Market Context", scores.get("market_context", 0))
-            st.markdown("---")
-
-            # Parsing the LLM report into sectioned cards
-            full_report = res.get("analysis", "")
-            
-            # Extract segments by triple hyphens
-            segments = full_report.split("---")
-            
-            # Map sections to ensure order and avoid duplicates
-            report_sections = {
-                "fundamental": None,
-                "technical": None,
-                "sentiment": None,
-                "market_context": None,
-                "narrative": None,
-                "risks": None,
-                "recommendation": None,
-                "horizon": None
-            }
-            
-            for segment in segments:
-                seg_upper = segment.upper().strip()
-                if "FUNDAMENTAL ANALYSIS" in seg_upper:
-                    report_sections["fundamental"] = segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip()
-                elif "TECHNICAL ANALYSIS" in seg_upper:
-                    report_sections["technical"] = segment.replace("**TECHNICAL ANALYSIS**", "").strip()
-                elif "SENTIMENT ANALYSIS" in seg_upper:
-                    report_sections["sentiment"] = segment.replace("**SENTIMENT ANALYSIS**", "").strip()
-                elif "MARKET CONTEXT" in seg_upper:
-                    report_sections["market_context"] = segment.replace("**MARKET CONTEXT**", "").strip()
-                elif "AI NARRATIVE SUMMARY" in seg_upper:
-                    report_sections["narrative"] = segment.replace("**AI NARRATIVE SUMMARY**", "").strip()
-                elif "RISK FACTORS" in seg_upper:
-                    report_sections["risks"] = segment.replace("**RISK FACTORS**", "").strip()
-                elif "FINAL RECOMMENDATION" in seg_upper:
-                    report_sections["recommendation"] = segment.replace("**FINAL RECOMMENDATION**", "").strip()
-                elif "INVESTMENT HORIZON" in seg_upper:
-                    report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
 
             # 1. Fundamental Analysis
             if report_sections["fundamental"]:
@@ -373,42 +365,31 @@ if st.session_state.results:
                     st.markdown(report_sections["risks"])
                 st.divider()
 
-            # 7. Final Recommendation
-            if report_sections["recommendation"]:
-                with st.container():
-                    # Parse recommendation and confidence
-                    rec_lines = report_sections["recommendation"].split("\n")
-                    rec_call = rec_lines[0].replace("**", "").strip()
-                    conf_level = ""
-                    for line in rec_lines:
-                        if "Confidence Level:" in line:
-                            conf_level = line.replace("Confidence Level:", "").strip()
-                            break
-                    
-                    # Recommendation color logic
-                    rec_bg = "#fef2f2" # Light Red
-                    rec_border = "#fecaca"
-                    rec_text_color = "#dc2626"
-                    
-                    if "STRONG BUY" in rec_call or "BUY" in rec_call:
-                        rec_bg = "#ecfdf5" # Light Green
-                        rec_border = "#d1fae5"
-                        rec_text_color = "#059669"
-                    elif "HOLD" in rec_call:
-                        rec_bg = "#fffbeb" # Light Yellow
-                        rec_border = "#fef3c7"
-                        rec_text_color = "#d97706"
-                    
-                    st.markdown(f"""
-                        <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px; margin-bottom: 1rem;">
-                            <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
-                            <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
-                                Confidence Level: {conf_level}
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                st.divider()
+            # 7. Sentiment Score Dashboard (Repositioned)
+            def get_score_color(val):
+                if val >= 7: return "#059669"
+                if val >= 4: return "#d97706"
+                return "#dc2626"
+
+            f_color = get_score_color(scores.get("fundamental", 0))
+            t_color = get_score_color(scores.get("technical", 0))
+            s_color = get_score_color(scores.get("sentiment", 0))
+            m_color = get_score_color(scores.get("market_context", 0))
+
+            c1, c2, c3, c4 = st.columns(4)
+            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
+            with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### RATING SUMMARY")
+            r1, r2, r3, r4 = st.columns(4)
+            r1.metric("Fundamental", scores.get("fundamental", 0))
+            r2.metric("Technical", scores.get("technical", 0))
+            r3.metric("Sentiment", scores.get("sentiment", 0))
+            r4.metric("Market Context", scores.get("market_context", 0))
+            st.divider()
 
             # 8. Investment Horizon
             if report_sections["horizon"]:
