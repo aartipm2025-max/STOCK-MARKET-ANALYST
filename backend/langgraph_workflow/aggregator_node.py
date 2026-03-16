@@ -60,18 +60,16 @@ def summarize_results(state: dict) -> dict:
         s_score = sentiment.get(ticker, {}).get("sentiment_score", 0.0)
         m_score = market_context.get(ticker, {}).get("context_score", 0.0)
         
-        # Final Score = (0.4 * F) + (0.4 * T) + (0.2 * S)
-        final_score = (0.4 * f_score) + (0.4 * t_score) + (0.2 * s_score)
+        # Final Score & Confidence (40% Fundamental, 30% Technical, 30% Sentiment)
+        # Normalized to 10.0 scale
+        final_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
         
-        # Confidence Score = 40% Fundamental + 30% Technical + 30% Sentiment -> Normalized to 100%
-        # Scores are out of 10.0, so (0.4*10 + 0.3*10 + 0.3*10) = 10.0
-        conf_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
-        confidence_pct = round(conf_score * 10, 1)
+        confidence_pct = round(final_score * 10, 1)
 
         # Recommendation logic
-        if final_score >= 8.0: rec = "STRONG BUY"
-        elif final_score >= 6.5: rec = "BUY"
-        elif final_score >= 4.5: rec = "HOLD"
+        if final_score >= 7.5: rec = "STRONG BUY"
+        elif final_score >= 6.0: rec = "BUY"
+        elif final_score >= 4.0: rec = "HOLD"
         else: rec = "AVOID"
 
         # Extract latest date from technical data

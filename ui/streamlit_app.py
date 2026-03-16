@@ -252,7 +252,7 @@ if st.session_state.results:
         elif "INVESTMENT HORIZON" in seg_upper:
             report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
 
-    # 1. Final Recommendation (Now at the Top)
+    # 1. Final Recommendation (Top)
     if report_sections["recommendation"]:
         with st.container():
             rec_lines = report_sections["recommendation"].split("\n")
@@ -263,7 +263,7 @@ if st.session_state.results:
                     conf_level = line.replace("Confidence Level:", "").strip()
                     break
             
-            rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626" # Default Avoid
+            rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626"
             if "STRONG BUY" in rec_call or "BUY" in rec_call:
                 rec_bg, rec_border, rec_text_color = "#ecfdf5", "#d1fae5", "#059669"
             elif "HOLD" in rec_call:
@@ -280,123 +280,94 @@ if st.session_state.results:
             """, unsafe_allow_html=True)
         st.divider()
 
-    # Upgrade 3: Stock Price Chart
-    try:
-        if tickers:
-            symbol = tickers[0]
-            ticker_obj = yf.Ticker(symbol)
-            hist = ticker_obj.history(period="6mo")
-            if not hist.empty:
-                st.markdown(f"### Price Performance: {symbol} (6 Months)")
-                st.line_chart(hist["Close"])
-            else:
-                st.warning(f"No historical price data found for {symbol}")
-    except Exception as e:
-        st.error(f"Error rendering price chart: {e}")
-
     if agg_data_list:
-        if intent == "comparison":
-            st.markdown("#### Market Comparison Table")
-            comp_df = pd.DataFrame([
-                {
-                    "Ticker": item['ticker'],
-                    "Fund.": item['scores']['fundamental'],
-                    "Tech.": item['scores']['technical'],
-                    "Sent.": item['scores']['sentiment'],
-                    "Context": item['scores'].get('market_context', 0.0),
-                    "Final": item['final_score'],
-                    "Recommendation": item['recommendation']
-                } for item in agg_data_list
-            ])
-            st.table(comp_df)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-        elif intent == "portfolio":
-            st.subheader("Portfolio Breakdown")
-            for item in agg_data_list:
-                st.markdown(f"**{item['ticker']}**: Score {item['final_score']}/10 - *{item['recommendation']}*")
-            st.markdown("<br>", unsafe_allow_html=True)
+        # Preparation for Dashboards
+        target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
+        target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
+        scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
 
-        if len(agg_data_list) > 0:
-            # Deep dive selection and score dashboard
-            target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
-            target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
-            scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
+        # 2. Score Dashboard (Cards)
+        def get_score_color(val):
+            if val >= 7: return "#059669"
+            if val >= 4: return "#d97706"
+            return "#dc2626"
 
-            # 1. Fundamental Analysis
-            if report_sections["fundamental"]:
-                with st.container():
-                    st.markdown("### 📊 Fundamental Analysis")
-                    st.markdown(report_sections["fundamental"])
-                st.divider()
+        f_color = get_score_color(scores.get("fundamental", 0))
+        t_color = get_score_color(scores.get("technical", 0))
+        s_color = get_score_color(scores.get("sentiment", 0))
+        m_color = get_score_color(scores.get("market_context", 0))
 
-            # 2. Technical Analysis
-            if report_sections["technical"]:
-                with st.container():
-                    st.markdown("### 📈 Technical Analysis")
-                    st.markdown(report_sections["technical"])
-                st.divider()
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
+        with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
+        with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
+        with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            # 3. Sentiment Analysis
-            if report_sections["sentiment"]:
-                with st.container():
-                    st.markdown("### 💬 Sentiment Analysis")
-                    st.markdown(report_sections["sentiment"])
-                st.divider()
+        # 3. Price Chart
+        try:
+            if tickers:
+                symbol = tickers[0]
+                ticker_obj = yf.Ticker(symbol)
+                hist = ticker_obj.history(period="6mo")
+                if not hist.empty:
+                    st.markdown(f"### Price Performance: {symbol} (6 Months)")
+                    st.line_chart(hist["Close"])
+        except:
+            pass
+        st.divider()
 
-            # 4. Market Context
-            if report_sections["market_context"]:
-                with st.container():
-                    st.markdown("### 🌐 Market Context")
-                    st.markdown(report_sections["market_context"])
-                st.divider()
+        # 4. Rating Summary (Metrics)
+        st.markdown("### RATING SUMMARY")
+        r1, r2, r3, r4 = st.columns(4)
+        r1.metric("Fundamental", scores.get("fundamental", 0))
+        r2.metric("Technical", scores.get("technical", 0))
+        r3.metric("Sentiment", scores.get("sentiment", 0))
+        r4.metric("Market Context", scores.get("market_context", 0))
+        st.divider()
 
-            # 5. AI Narrative Summary
-            if report_sections["narrative"]:
-                with st.container():
-                    st.markdown("### 🤖 AI Narrative Summary")
-                    st.markdown(report_sections["narrative"])
-                st.divider()
-
-            # 6. Risk Factors
-            if report_sections["risks"]:
-                with st.container():
-                    st.markdown("### ⚠️ Risk Factors")
-                    st.markdown(report_sections["risks"])
-                st.divider()
-
-            # 7. Sentiment Score Dashboard (Repositioned)
-            def get_score_color(val):
-                if val >= 7: return "#059669"
-                if val >= 4: return "#d97706"
-                return "#dc2626"
-
-            f_color = get_score_color(scores.get("fundamental", 0))
-            t_color = get_score_color(scores.get("technical", 0))
-            s_color = get_score_color(scores.get("sentiment", 0))
-            m_color = get_score_color(scores.get("market_context", 0))
-
-            c1, c2, c3, c4 = st.columns(4)
-            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
-            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
-            with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### RATING SUMMARY")
-            r1, r2, r3, r4 = st.columns(4)
-            r1.metric("Fundamental", scores.get("fundamental", 0))
-            r2.metric("Technical", scores.get("technical", 0))
-            r3.metric("Sentiment", scores.get("sentiment", 0))
-            r4.metric("Market Context", scores.get("market_context", 0))
+        # 5. Analysis Boxes
+        if report_sections["fundamental"]:
+            with st.container():
+                st.markdown("### 📊 Fundamental Analysis")
+                st.markdown(report_sections["fundamental"])
             st.divider()
 
-            # 8. Investment Horizon
-            if report_sections["horizon"]:
-                with st.container():
-                    st.markdown("### ⏳ Investment Horizon")
-                    st.markdown(report_sections["horizon"])
-                st.divider()
+        if report_sections["technical"]:
+            with st.container():
+                st.markdown("### 📈 Technical Analysis")
+                st.markdown(report_sections["technical"])
+            st.divider()
+
+        if report_sections["sentiment"]:
+            with st.container():
+                st.markdown("### 💬 Sentiment Analysis")
+                st.markdown(report_sections["sentiment"])
+            st.divider()
+
+        if report_sections["market_context"]:
+            with st.container():
+                st.markdown("### 🌐 Market Context")
+                st.markdown(report_sections["market_context"])
+            st.divider()
+
+        if report_sections["narrative"]:
+            with st.container():
+                st.markdown("### 🤖 AI Narrative Summary")
+                st.markdown(report_sections["narrative"])
+            st.divider()
+
+        if report_sections["risks"]:
+            with st.container():
+                st.markdown("### ⚠️ Risk Factors")
+                st.markdown(report_sections["risks"])
+            st.divider()
+
+        if report_sections["horizon"]:
+            with st.container():
+                st.markdown("### ⏳ Investment Horizon")
+                st.markdown(report_sections["horizon"])
+            st.divider()
 
 
 else:
