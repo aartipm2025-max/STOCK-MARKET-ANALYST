@@ -63,12 +63,13 @@ def invoke_with_failover(prompt, input_vars, temperature=0):
             logger.warning(f"Error with {provider}: {e}")
             
             # Common quota/rate limit indicators
-            quota_errors = ["429", "quota", "resource_exhausted", "rate_limit"]
+            quota_errors = ["429", "quota", "resource_exhausted", "rate_limit", "leaked", "403", "permission_denied", "invalid_api_key"]
             if any(qe in error_str for qe in quota_errors):
-                logger.info(f"{provider} exhausted. Blacklisting for 5 mins. Trying next provider...")
-                EXHAUSTED_PROVIDERS[provider] = time.time() + 300 # 5 min blacklist
+                logger.info(f"{provider} exhausted/invalid. Blacklisting for 10 mins. Trying next provider...")
+                EXHAUSTED_PROVIDERS[provider] = time.time() + 600 # 10 min blacklist
                 continue
             else:
+                # Still try the next provider for any other runtime error
                 continue
 
     logger.error("All LLM providers failed or are exhausted.")
@@ -76,14 +77,15 @@ def invoke_with_failover(prompt, input_vars, temperature=0):
 
 def extract_json(content: str) -> dict:
     """Robustly extracts JSON from a string that might contain chatty text."""
+    import re
+    if not content:
+        raise ValueError("Empty content received")
+        
     content = content.strip()
-    # Try direct load first
-    try:
-        # Pre-clean known markdown blocks
-        clean = content.replace("```json", "").replace("```", "").strip()
-        return json.loads(clean)
-    except Exception:
-        pass
+    
+    # Remove markdown code blocks if present
+    content = re.sub(r'```(?:json)?', '', content)
+    content = content.replace('```', '').strip()
     
     # Try finding the first '{' and last '}'
     try:
@@ -92,7 +94,9 @@ def extract_json(content: str) -> dict:
         if start != -1 and end != -1:
             json_str = content[start:end+1]
             return json.loads(json_str)
-    except Exception:
-        pass
-        
-    raise ValueError(f"Could not extract valid JSON from LLM response: {content[:100]}...")
+        else:
+            # Fallback to direct load if no braces
+            return json.loads(content)
+    except Exception as e:
+        logger.error(f"Failed to extract JSON. Content start: {content[:100]}")
+        raise ValueError(f"Could not extract valid JSON from LLM response: {str(e)}")
