@@ -223,7 +223,6 @@ Confidence Level: {confidence_placeholder}
 Agent Data:
 {data_for_llm}
 """
-"""
     prompt = PromptTemplate(template=template, input_variables=["data_for_llm", "confidence_placeholder"])
     
     conf_val = aggregation_results[0].get("confidence_level", "N/A") if aggregation_results else "N/A"
