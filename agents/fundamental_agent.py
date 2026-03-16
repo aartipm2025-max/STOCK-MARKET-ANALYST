@@ -11,9 +11,9 @@ def analyze_fundamentals(ticker: str) -> dict:
         stock = yf.Ticker(ticker)
         
         # Pre-fetch financial statements
-        # income_stmt and financials are often the same in newer yfinance versions
-        income_stmt = stock.income_stmt
-        balance_sheet = stock.balance_sheet
+        inc = stock.financials
+        bal = stock.balance_sheet
+        if inc.empty: inc = stock.income_stmt
         info = stock.info or {}
         
         metrics = {
@@ -24,73 +24,62 @@ def analyze_fundamentals(ticker: str) -> dict:
             "operating_margin": None
         }
 
-        # 1. Revenue Growth Extraction (from Income Statement)
+        def get_from_stmt(df, keys):
+            if df is None or df.empty: return None
+            for k in keys:
+                if k in df.index:
+                    series = df.loc[k]
+                    if not series.empty: return series
+            return None
+
+        # 1. Revenue Growth Extraction
         try:
-            if not income_stmt.empty and "Total Revenue" in income_stmt.index:
-                revs = income_stmt.loc["Total Revenue"]
-                if len(revs) >= 2:
-                    # Calculate year-over-year growth
-                    metrics["revenue_growth"] = (revs.iloc[0] - revs.iloc[1]) / revs.iloc[1]
+            rev_series = get_from_stmt(inc, ["Total Revenue", "TotalRevenue", "OperatingRevenue"])
+            if rev_series is not None and len(rev_series) >= 2:
+                metrics["revenue_growth"] = (rev_series.iloc[0] - rev_series.iloc[1]) / rev_series.iloc[1]
         except Exception as e:
             logger.warning(f"Error calculating Revenue Growth for {ticker}: {e}")
 
-        # 2. Operating Margin Extraction (from Income Statement)
+        # 2. Operating Margin Extraction
         try:
-            if not income_stmt.empty and "Operating Income" in income_stmt.index and "Total Revenue" in income_stmt.index:
-                op_inc = income_stmt.loc["Operating Income"]
-                total_rev = income_stmt.loc["Total Revenue"]
-                if not op_inc.empty and not total_rev.empty and total_rev.iloc[0] != 0:
-                    metrics["operating_margin"] = op_inc.iloc[0] / total_rev.iloc[0]
+            op_inc = get_from_stmt(inc, ["Operating Income", "OperatingIncome"])
+            total_rev = get_from_stmt(inc, ["Total Revenue", "TotalRevenue"])
+            if op_inc is not None and total_rev is not None and total_rev.iloc[0] != 0:
+                metrics["operating_margin"] = op_inc.iloc[0] / total_rev.iloc[0]
         except Exception as e:
             logger.warning(f"Error calculating Operating Margin for {ticker}: {e}")
 
-        # 3. ROE Extraction (Net Income / Total Equity)
+        # 3. ROE Extraction
         try:
-            equity = None
-            for k in ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity"]:
-                if not balance_sheet.empty and k in balance_sheet.index:
-                    equity = balance_sheet.loc[k].iloc[0]
-                    break
-            
-            if equity and not income_stmt.empty and "Net Income" in income_stmt.index:
-                net_inc = income_stmt.loc["Net Income"].iloc[0]
-                if equity != 0:
-                    metrics["roe"] = net_inc / equity
+            equity = get_from_stmt(bal, ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity", "Total Equity"])
+            net_inc = get_from_stmt(inc, ["Net Income", "NetIncome", "Net Income Common Stockholders"])
+            if equity is not None and net_inc is not None and equity.iloc[0] != 0:
+                metrics["roe"] = net_inc.iloc[0] / equity.iloc[0]
         except Exception as e:
             logger.warning(f"Error calculating ROE for {ticker}: {e}")
 
         # 4. Debt to Equity Extraction
         try:
-            if equity:
-                total_debt = None
-                for k in ["Total Debt", "Net Debt"]:
-                    if not balance_sheet.empty and k in balance_sheet.index:
-                        total_debt = balance_sheet.loc[k].iloc[0]
-                        break
-                if total_debt is not None and equity != 0:
-                    metrics["debt_to_equity"] = total_debt / equity
+            equity_val = equity.iloc[0] if equity is not None else None
+            debt = get_from_stmt(bal, ["Total Debt", "Net Debt", "Total Liabilities Net Minority Interest"])
+            if debt is not None and equity_val and equity_val != 0:
+                metrics["debt_to_equity"] = debt.iloc[0] / equity_val
         except Exception as e:
             logger.warning(f"Error calculating Debt to Equity for {ticker}: {e}")
 
         # 5. PE Ratio (Price / EPS)
         try:
-            # Try to get EPS from info first as it's more standard, fallback to calculation
             eps = info.get("trailingEps")
-            if eps is None and not income_stmt.empty and "Net Income" in income_stmt.index:
-                ni = income_stmt.loc["Net Income"].iloc[0]
-                shares = None
-                for k in ["Ordinary Shares Number", "Share Cap", "Total Shares Outstanding"]:
-                    if not balance_sheet.empty and k in balance_sheet.index:
-                        shares = balance_sheet.loc[k].iloc[0]
-                        break
-                if shares and shares != 0:
-                    eps = ni / shares
+            if eps is None:
+                ni = get_from_stmt(inc, ["Net Income", "NetIncome"])
+                shares = get_from_stmt(bal, ["Ordinary Shares Number", "Share Cap", "Total Shares Outstanding"])
+                if ni is not None and shares is not None and shares.iloc[0] != 0:
+                    eps = ni.iloc[0] / shares.iloc[0]
             
             price = info.get("currentPrice") or info.get("previousClose")
             if not price:
                 hist = stock.history(period="1d")
-                if not hist.empty:
-                    price = hist['Close'].iloc[0]
+                if not hist.empty: price = hist['Close'].iloc[0]
             
             if price and eps and eps != 0:
                 metrics["pe_ratio"] = price / eps

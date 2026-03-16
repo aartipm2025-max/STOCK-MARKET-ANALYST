@@ -63,8 +63,9 @@ def summarize_results(state: dict) -> dict:
         # Final Score = (0.4 * F) + (0.4 * T) + (0.2 * S)
         final_score = (0.4 * f_score) + (0.4 * t_score) + (0.2 * s_score)
         
-        # Confidence Score = (0.4 * F) + (0.3 * T) + (0.3 * S) -> Normalized to 100%
-        conf_score = (0.35 * f_score) + (0.3 * t_score) + (0.2 * s_score) + (0.15 * m_score) # Adjusted to include Market Context
+        # Confidence Score = 40% Fundamental + 30% Technical + 30% Sentiment -> Normalized to 100%
+        # Scores are out of 10.0, so (0.4*10 + 0.3*10 + 0.3*10) = 10.0
+        conf_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
         confidence_pct = round(conf_score * 10, 1)
 
         # Recommendation logic

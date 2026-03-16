@@ -1,3 +1,4 @@
+import yfinance as yf
 import streamlit as st
 import requests
 import json
@@ -226,13 +227,16 @@ if st.session_state.results:
     # Upgrade 3: Stock Price Chart
     try:
         if tickers:
-            hist_stock = yf.Ticker(tickers[0])
-            hist_df = hist_stock.history(period="6mo")
-            if not hist_df.empty:
-                st.markdown("### Price Performance (6 Months)")
-                st.area_chart(hist_df['Close'], use_container_width=True)
+            symbol = tickers[0]
+            ticker_obj = yf.Ticker(symbol)
+            hist = ticker_obj.history(period="6mo")
+            if not hist.empty:
+                st.markdown(f"### Price Performance: {symbol} (6 Months)")
+                st.line_chart(hist["Close"])
+            else:
+                st.warning(f"No historical price data found for {symbol}")
     except Exception as e:
-        st.warning(f"Could not load price chart: {e}")
+        st.error(f"Error rendering price chart: {e}")
 
     if agg_data_list:
         if intent == "comparison":

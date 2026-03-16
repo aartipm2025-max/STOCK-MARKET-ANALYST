@@ -16,15 +16,24 @@ def analyze_market_context(ticker: str) -> dict:
         nifty = yf.Ticker("^NSEI")
         nifty_hist = nifty.history(period="1mo")
         nifty_trend = "Stable"
-        if len(nifty_hist) >= 5:
+        change = 0
+        if not nifty_hist.empty and len(nifty_hist) >= 5:
             last_5 = nifty_hist['Close'].tail(5)
             change = (last_5.iloc[-1] - last_5.iloc[0]) / last_5.iloc[0]
-            if change > 0.01: nifty_trend = "Bullish (Up " + f"{change*100:.2f}%)"
-            elif change < -0.01: nifty_trend = "Bearish (Down " + f"{change*100:.2f}%)"
+            if change > 0.005: nifty_trend = "Bullish (Up " + f"{change*100:.2f}%)"
+            elif change < -0.005: nifty_trend = "Bearish (Down " + f"{change*100:.2f}%)"
             else: nifty_trend = "Side-ways / Neutral"
+        else:
+            # Fallback if 1mo fails
+            nifty_hist = nifty.history(period="5d")
+            if not nifty_hist.empty and len(nifty_hist) >= 2:
+                last_prices = nifty_hist['Close']
+                change = (last_prices.iloc[-1] - last_prices.iloc[0]) / last_prices.iloc[0]
+                if change > 0.005: nifty_trend = "Bullish (Up " + f"{change*100:.2f}%)"
+                elif change < -0.005: nifty_trend = "Bearish (Down " + f"{change*100:.2f}%)"
+                else: nifty_trend = "Side-ways / Neutral"
 
-        # 2. Sector Performance (Simplified: use sector name or assume general trend for now)
-        # In a real system, we'd have sector-specific indices like Nifty IT, Nifty Bank etc.
+        # 2. Sector Performance
         sector_map = {
             "Technology": "^CNXIT",
             "Financial Services": "^CNXBANK",
@@ -36,30 +45,27 @@ def analyze_market_context(ticker: str) -> dict:
         s_ticker = yf.Ticker(sector_index)
         s_hist = s_ticker.history(period="1mo")
         sector_perf = "Stable"
+        s_change = 0
         if not s_hist.empty and len(s_hist) >= 5:
             s_last_5 = s_hist['Close'].tail(5)
             s_change = (s_last_5.iloc[-1] - s_last_5.iloc[0]) / s_last_5.iloc[0]
-            sentiment = "Outperforming" if s_change > change else "Underperforming"
-            sector_perf = f"{sentiment} recently ({s_change*100:.2f}% change)"
+            comparison = "Outperforming market" if s_change > change else "Underperforming market"
+            sector_perf = f"{sector}: {comparison} ({s_change*100:.2f}% change)"
 
         # 3. Peer Comparison
-        # Retrieve peers based on industry (yfinance doesn't give a direct peer list easily)
-        # We can simulate this with 2-3 common peers for Indian stocks if known or just general industry comment
-        # For simplicity, we'll use yfinance 'recommendations' or just indicate relative position
         returns_1m = 0
         stock_hist = stock.history(period="1mo")
         if not stock_hist.empty:
             returns_1m = (stock_hist['Close'].iloc[-1] - stock_hist['Close'].iloc[0]) / stock_hist['Close'].iloc[0]
         
-        peer_comp = "Stock is performing " + ("above" if returns_1m > (s_change if 's_change' in locals() else 0) else "below") + " sector average returns."
+        peer_comp = f"Stock 1-month return ({returns_1m*100:.2f}%) is " + ("above" if returns_1m > s_change else "below") + " sector/market average."
 
         # Scoring (0-10)
-        # Better if both Nifty and Sector are Bullish
         context_score = 5.0
-        if "Bullish" in nifty_trend: context_score += 2.0
-        if "Outperforming" in sector_perf: context_score += 2.0
-        if returns_1m > 0: context_score += 1.0
-
+        if change > 0: context_score += 1.5
+        if s_change > change: context_score += 1.5
+        if returns_1m > s_change: context_score += 2.0
+        
         return {
             "agent": "market_context",
             "ticker": ticker,
