@@ -39,9 +39,10 @@ def get_llm_instance(provider, temperature=0):
 
 def invoke_with_failover(prompt, input_vars, temperature=0):
     """
-    Invokes LLM with failover across providers: Gemini -> Groq -> OpenAI.
+    Invokes LLM with failover across providers: Groq -> Gemini -> OpenAI.
+    Groq is the primary provider.
     """
-    providers = ["gemini", "groq", "openai"]
+    providers = ["groq", "gemini", "openai"]
     last_error = None
 
     for provider in providers:
