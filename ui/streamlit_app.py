@@ -269,6 +269,15 @@ if st.session_state.results:
             <p style='color: #475569; font-size: 1rem; font-weight: 600;'>Data Analyzed Up To: {analysis_date}</p>
         </div>
     """, unsafe_allow_html=True)
+    
+    if res.get("is_cached"):
+        st.markdown("""
+            <div style='text-align: center; margin-top: -1.5rem; margin-bottom: 1.5rem;'>
+                <span style='background-color: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 1px solid #e2e8f0;'>
+                    ⚡ Result retrieved from cache
+                </span>
+            </div>
+        """, unsafe_allow_html=True)
 
     # ─── 1. FINAL RECOMMENDATION (Top of Page) ───────────────────────────
     rec_text = report_sections.get("recommendation", "")
