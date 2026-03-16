@@ -368,7 +368,15 @@ else:
     # Perfectly Centered Search Container
     c1, c2, c3 = st.columns([1, 3, 1])
     with c2:
-        user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder="e.g. Compare TCS and Infosys", label_visibility="collapsed")
+        placeholder_text = "e.g. What is a PE ratio?"
+        if analysis_mode == "Single Stock":
+            placeholder_text = "e.g. Reliance"
+        elif analysis_mode == "Compare Stocks":
+            placeholder_text = "e.g. TCS vs Infosys"
+        elif analysis_mode == "Portfolio":
+            placeholder_text = "e.g. TCS, Infosys, Wipro, Reliance"
+            
+        user_query = st.text_input("Search or Ask AI...", key="main_input", placeholder=placeholder_text, label_visibility="collapsed")
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         # Center the button within this column
         b_c1, b_c2, b_c3 = st.columns([1, 1, 1])
