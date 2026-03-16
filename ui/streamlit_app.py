@@ -236,6 +236,10 @@ def clean_section_content(text: str) -> str:
 
 
 if st.session_state.results:
+    if st.button("← Back to Search"):
+        st.session_state.results = None
+        st.rerun()
+        
     res = st.session_state.results
     intent = res.get("intent", "unknown")
     tickers = res.get("tickers", [])
