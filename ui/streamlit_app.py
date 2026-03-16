@@ -331,76 +331,91 @@ if st.session_state.results:
                 elif "INVESTMENT HORIZON" in seg_upper:
                     report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
 
-            # Render in fixed order
+            # 1. Fundamental Analysis
             if report_sections["fundamental"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">📊 Fundamental Analysis</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["fundamental"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### 📊 Fundamental Analysis")
+                    st.markdown(report_sections["fundamental"])
+                st.divider()
 
+            # 2. Technical Analysis
             if report_sections["technical"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">📈 Technical Analysis</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["technical"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### 📈 Technical Analysis")
+                    st.markdown(report_sections["technical"])
+                st.divider()
 
+            # 3. Sentiment Analysis
             if report_sections["sentiment"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">💬 Sentiment Analysis</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["sentiment"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### 💬 Sentiment Analysis")
+                    st.markdown(report_sections["sentiment"])
+                st.divider()
 
+            # 4. Market Context
             if report_sections["market_context"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">🌐 Market Context</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["market_context"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### 🌐 Market Context")
+                    st.markdown(report_sections["market_context"])
+                st.divider()
 
+            # 5. AI Narrative Summary
             if report_sections["narrative"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">🤖 AI Narrative Summary</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["narrative"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### 🤖 AI Narrative Summary")
+                    st.markdown(report_sections["narrative"])
+                st.divider()
 
+            # 6. Risk Factors
             if report_sections["risks"]:
-                st.markdown('<div class="analysis-card"><div class="section-header">⚠️ Risk Factors</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["risks"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### ⚠️ Risk Factors")
+                    st.markdown(report_sections["risks"])
+                st.divider()
 
+            # 7. Final Recommendation
             if report_sections["recommendation"]:
-                # Parse recommendation and confidence
-                rec_lines = report_sections["recommendation"].split("\n")
-                rec_call = rec_lines[0].replace("**", "").strip()
-                conf_level = ""
-                for line in rec_lines:
-                    if "Confidence Level:" in line:
-                        conf_level = line.replace("Confidence Level:", "").strip()
-                        break
-                
-                # Recommendation color logic
-                rec_bg = "#fef2f2" # Light Red
-                rec_border = "#fecaca"
-                rec_text_color = "#dc2626"
-                
-                if "STRONG BUY" in rec_call or "BUY" in rec_call:
-                    rec_bg = "#ecfdf5" # Light Green
-                    rec_border = "#d1fae5"
-                    rec_text_color = "#059669"
-                elif "HOLD" in rec_call:
-                    rec_bg = "#fffbeb" # Light Yellow
-                    rec_border = "#fef3c7"
-                    rec_text_color = "#d97706"
-                
-                st.markdown(f"""
-                    <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px;">
-                        <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
-                        <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
-                        <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
-                            Confidence Level: {conf_level}
+                with st.container():
+                    # Parse recommendation and confidence
+                    rec_lines = report_sections["recommendation"].split("\n")
+                    rec_call = rec_lines[0].replace("**", "").strip()
+                    conf_level = ""
+                    for line in rec_lines:
+                        if "Confidence Level:" in line:
+                            conf_level = line.replace("Confidence Level:", "").strip()
+                            break
+                    
+                    # Recommendation color logic
+                    rec_bg = "#fef2f2" # Light Red
+                    rec_border = "#fecaca"
+                    rec_text_color = "#dc2626"
+                    
+                    if "STRONG BUY" in rec_call or "BUY" in rec_call:
+                        rec_bg = "#ecfdf5" # Light Green
+                        rec_border = "#d1fae5"
+                        rec_text_color = "#059669"
+                    elif "HOLD" in rec_call:
+                        rec_bg = "#fffbeb" # Light Yellow
+                        rec_border = "#fef3c7"
+                        rec_text_color = "#d97706"
+                    
+                    st.markdown(f"""
+                        <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px; margin-bottom: 1rem;">
+                            <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
+                            <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
+                                Confidence Level: {conf_level}
+                            </div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+                st.divider()
 
+            # 8. Investment Horizon
             if report_sections["horizon"]:
-                st.markdown('<br>', unsafe_allow_html=True)
-                st.markdown('<div class="analysis-card"><div class="section-header">⏳ Investment Horizon</div>', unsafe_allow_html=True)
-                st.markdown(report_sections["horizon"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("### ⏳ Investment Horizon")
+                    st.markdown(report_sections["horizon"])
+                st.divider()
 
 
 else:
