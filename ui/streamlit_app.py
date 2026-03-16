@@ -169,6 +169,7 @@ def call_market_api(query, mode=None, force_integrated=False):
             "fundamental_data": {},
             "technical_data": {},
             "sentiment_data": {},
+            "context_data": {},
             "portfolio_data": {},
             "final_analysis": "",
             "aggregated_data": []
@@ -177,12 +178,13 @@ def call_market_api(query, mode=None, force_integrated=False):
         return {
             "intent": result_state.get("intent", "unknown"),
             "tickers": result_state.get("tickers", []),
-            "analysis": result_state.get("final_analysis", "Analysis failed."),
+            "analysis": result_state.get("final_analysis", "{}"),
             "aggregated_data": result_state.get("aggregated_data", [])
         }
     except Exception as e:
         st.error(f"Integrated Agent Error: {e}")
         return None
+
 
 # ── Global Central Container ──────────────────────────────────────────────────
 st.markdown('<div class="content-container">', unsafe_allow_html=True)
@@ -208,6 +210,15 @@ if st.session_state.results:
     tickers = res.get("tickers", [])
     agg_data_list = res.get("aggregated_data", [])
     
+    # ── Parse structured report_sections from aggregator ──
+    report_sections = {}
+    raw_analysis = res.get("analysis", "")
+    try:
+        report_sections = json.loads(raw_analysis)
+    except (json.JSONDecodeError, TypeError):
+        # Fallback: if it's a plain string (old format), show it raw
+        report_sections = {"narrative": raw_analysis}
+    
     # Clean Ticker Display
     display_ticker = tickers[0] if tickers else "Unknown"
     
@@ -224,38 +235,11 @@ if st.session_state.results:
         </div>
     """, unsafe_allow_html=True)
 
-    # Parsing the LLM report into sectioned cards (Moved Up)
-    full_report = res.get("analysis", "")
-    segments = full_report.split("---")
-    report_sections = {
-        "fundamental": None, "technical": None, "sentiment": None,
-        "market_context": None, "narrative": None, "risks": None,
-        "recommendation": None, "horizon": None
-    }
-    
-    for segment in segments:
-        seg_upper = segment.upper().strip()
-        if "FUNDAMENTAL ANALYSIS" in seg_upper:
-            report_sections["fundamental"] = segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip()
-        elif "TECHNICAL ANALYSIS" in seg_upper:
-            report_sections["technical"] = segment.replace("**TECHNICAL ANALYSIS**", "").strip()
-        elif "SENTIMENT ANALYSIS" in seg_upper:
-            report_sections["sentiment"] = segment.replace("**SENTIMENT ANALYSIS**", "").strip()
-        elif "MARKET CONTEXT" in seg_upper:
-            report_sections["market_context"] = segment.replace("**MARKET CONTEXT**", "").strip()
-        elif "AI NARRATIVE SUMMARY" in seg_upper:
-            report_sections["narrative"] = segment.replace("**AI NARRATIVE SUMMARY**", "").strip()
-        elif "RISK FACTORS" in seg_upper:
-            report_sections["risks"] = segment.replace("**RISK FACTORS**", "").strip()
-        elif "FINAL RECOMMENDATION" in seg_upper:
-            report_sections["recommendation"] = segment.replace("**FINAL RECOMMENDATION**", "").strip()
-        elif "INVESTMENT HORIZON" in seg_upper:
-            report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
-
-    # 1. Final Recommendation (Top)
-    if report_sections["recommendation"]:
+    # ─── 1. FINAL RECOMMENDATION (Top of Page) ───────────────────────────
+    rec_text = report_sections.get("recommendation", "")
+    if rec_text:
         with st.container():
-            rec_lines = report_sections["recommendation"].split("\n")
+            rec_lines = rec_text.split("\n")
             rec_call = rec_lines[0].replace("**", "").strip()
             conf_level = "N/A"
             for line in rec_lines:
@@ -264,9 +248,9 @@ if st.session_state.results:
                     break
             
             rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626"
-            if "STRONG BUY" in rec_call or "BUY" in rec_call:
+            if "STRONG BUY" in rec_call.upper() or "BUY" in rec_call.upper():
                 rec_bg, rec_border, rec_text_color = "#ecfdf5", "#d1fae5", "#059669"
-            elif "HOLD" in rec_call:
+            elif "HOLD" in rec_call.upper():
                 rec_bg, rec_border, rec_text_color = "#fffbeb", "#fef3c7", "#d97706"
             
             st.markdown(f"""
@@ -286,7 +270,7 @@ if st.session_state.results:
         target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
         scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
 
-        # 2. Score Dashboard (Cards)
+        # ─── 2. SCORE DASHBOARD (Cards) ───────────────────────────────────
         def get_score_color(val):
             if val >= 7: return "#059669"
             if val >= 4: return "#d97706"
@@ -304,7 +288,7 @@ if st.session_state.results:
         with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 3. Price Chart
+        # ─── 3. PRICE CHART ──────────────────────────────────────────────
         try:
             if tickers:
                 symbol = tickers[0]
@@ -317,7 +301,7 @@ if st.session_state.results:
             pass
         st.divider()
 
-        # 4. Rating Summary (Metrics)
+        # ─── 4. RATING SUMMARY (Metrics) ─────────────────────────────────
         st.markdown("### RATING SUMMARY")
         r1, r2, r3, r4 = st.columns(4)
         r1.metric("Fundamental", scores.get("fundamental", 0))
@@ -326,48 +310,24 @@ if st.session_state.results:
         r4.metric("Market Context", scores.get("market_context", 0))
         st.divider()
 
-        # 5. Analysis Boxes
-        if report_sections["fundamental"]:
-            with st.container():
-                st.markdown("### 📊 Fundamental Analysis")
-                st.markdown(report_sections["fundamental"])
-            st.divider()
-
-        if report_sections["technical"]:
-            with st.container():
-                st.markdown("### 📈 Technical Analysis")
-                st.markdown(report_sections["technical"])
-            st.divider()
-
-        if report_sections["sentiment"]:
-            with st.container():
-                st.markdown("### 💬 Sentiment Analysis")
-                st.markdown(report_sections["sentiment"])
-            st.divider()
-
-        if report_sections["market_context"]:
-            with st.container():
-                st.markdown("### 🌐 Market Context")
-                st.markdown(report_sections["market_context"])
-            st.divider()
-
-        if report_sections["narrative"]:
-            with st.container():
-                st.markdown("### 🤖 AI Narrative Summary")
-                st.markdown(report_sections["narrative"])
-            st.divider()
-
-        if report_sections["risks"]:
-            with st.container():
-                st.markdown("### ⚠️ Risk Factors")
-                st.markdown(report_sections["risks"])
-            st.divider()
-
-        if report_sections["horizon"]:
-            with st.container():
-                st.markdown("### ⏳ Investment Horizon")
-                st.markdown(report_sections["horizon"])
-            st.divider()
+        # ─── 5. ANALYSIS BOXES (Structured from report_sections) ─────────
+        section_config = [
+            ("fundamental", "📊 Fundamental Analysis"),
+            ("technical", "📈 Technical Analysis"),
+            ("sentiment", "💬 Sentiment Analysis"),
+            ("market_context", "🌐 Market Context"),
+            ("narrative", "🤖 AI Narrative Summary"),
+            ("risks", "⚠️ Risk Factors"),
+            ("horizon", "⏳ Investment Horizon"),
+        ]
+        
+        for key, title in section_config:
+            content = report_sections.get(key, "")
+            if content and content.strip():
+                with st.container():
+                    st.markdown(f"### {title}")
+                    st.markdown(content)
+                st.divider()
 
 
 else:
@@ -388,8 +348,6 @@ else:
             submit_btn = st.button("Generate Analysis", use_container_width=True)
 
 # ── Metrics Bar ──────────────────────────────────────────────────────────────
-# (Optional: Only show if results exist or keep as personal dash)
-# Moving metrics below if needed, but keeping for now as it gives it a dash feel.
 
 if submit_btn and user_query:
     st.session_state.results = None

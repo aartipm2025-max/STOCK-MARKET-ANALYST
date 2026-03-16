@@ -6,42 +6,127 @@ from utils.llm_utils import invoke_with_failover
 
 logger = get_logger("aggregator_node")
 
-def generate_fallback_report(aggregation_results: list) -> str:
-    """Generates a professional text summary if the LLM fails."""
-    if not aggregation_results:
-        return "No ticker data available to analyze. Please check your input."
+
+def build_deterministic_sections(ticker_data: dict, agg: dict) -> dict:
+    """Build guaranteed section content from raw agent data."""
+    sections = {}
     
-    report_lines = ["### Stock Market Analysis Report (Deterministic Summary)"]
-    for item in aggregation_results:
-        ticker = item['ticker']
-        score = item['final_score']
-        rec = item['recommendation']
-        f = item['scores']['fundamental']
-        t = item['scores']['technical']
-        s = item['scores']['sentiment']
-        
-        report_lines.append(f"\n**{ticker}**")
-        report_lines.append(f"- **Final Score:** {score}/10")
-        report_lines.append(f"- **Recommendation:** {rec}")
-        report_lines.append(f"- **Breakdown:** Fundamental: {f}, Technical: {t}, Sentiment: {s}")
-        report_lines.append(f"- *Note: Detailed narrative unavailable due to system limit; providing score-based summary.*")
-        
-    return "\n".join(report_lines)
+    # Fundamental
+    f_data = ticker_data.get("f") or {}
+    f_metrics = f_data.get("metrics", {})
+    sections["fundamental"] = (
+        f"• **Revenue Growth:** {f_metrics.get('revenue_growth', 'Unavailable')}\n\n"
+        f"• **P/E Ratio:** {f_metrics.get('pe_ratio', 'Unavailable')}\n\n"
+        f"• **Return on Equity:** {f_metrics.get('roe', 'Unavailable')}\n\n"
+        f"• **Debt-to-Equity:** {f_metrics.get('debt_to_equity', 'Unavailable')}\n\n"
+        f"• **Operating Margin:** {f_metrics.get('operating_margin', 'Unavailable')}"
+    )
+    
+    # Technical
+    t_data = ticker_data.get("t") or {}
+    t_ind = t_data.get("indicators", {})
+    sections["technical"] = (
+        f"• **RSI:** {t_ind.get('rsi_interpretation', 'Unavailable')}\n\n"
+        f"• **MACD Signal:** {t_ind.get('macd_signal', 'Unavailable')}\n\n"
+        f"• **50-Day SMA:** {t_ind.get('sma_50_interpretation', 'Unavailable')}\n\n"
+        f"• **200-Day SMA:** {t_ind.get('sma_200_interpretation', 'Unavailable')}\n\n"
+        f"• **Volume Trend:** {t_ind.get('volume_trend', 'Unavailable')}"
+    )
+    
+    # Sentiment
+    s_data = ticker_data.get("s") or {}
+    s_breakdown = s_data.get("sentiment_breakdown", {})
+    s_summary = s_data.get("summary", "No sentiment summary available.")
+    sections["sentiment"] = (
+        f"• **Articles Analyzed:** {s_data.get('articles', 0)}\n\n"
+        f"• **Positive:** {s_breakdown.get('positive', 0)} | **Neutral:** {s_breakdown.get('neutral', 0)} | **Negative:** {s_breakdown.get('negative', 0)}\n\n"
+        f"• **Summary:** {s_summary}"
+    )
+    
+    # Market Context
+    m_data = ticker_data.get("m") or {}
+    sections["market_context"] = (
+        f"• **Nifty 50 Trend:** {m_data.get('nifty_trend', 'Unavailable')}\n\n"
+        f"• **Sector Performance:** {m_data.get('sector_performance', 'Unavailable')}\n\n"
+        f"• **Peer Comparison:** {m_data.get('peer_comparison', 'Unavailable')}"
+    )
+    
+    # Recommendation
+    rec = agg.get("recommendation", "HOLD")
+    conf = agg.get("confidence_level", "N/A")
+    sections["recommendation"] = f"**{rec}**\nConfidence Level: {conf}"
+    
+    # Narrative, Risks, Horizon — placeholders from deterministic data
+    sections["narrative"] = (
+        f"• **Overall Score:** {agg.get('final_score', 'N/A')}/10\n\n"
+        f"• **Key Driver:** Fundamental Score {agg.get('scores', {}).get('fundamental', 0)}/10"
+    )
+    sections["risks"] = (
+        "• **Technical Risk:** Evaluate RSI and MACD divergence\n\n"
+        "• **Fundamental Risk:** Review debt levels and margin trends\n\n"
+        "• **Market Risk:** Monitor Nifty 50 correlation"
+    )
+    sections["horizon"] = (
+        "• **Short-Term:** Based on technical momentum indicators\n\n"
+        "• **Long-Term:** Based on fundamental strength and growth trajectory"
+    )
+    
+    return sections
+
+
+def parse_llm_report(report_text: str) -> dict:
+    """Parse LLM report into structured sections using --- delimiter."""
+    sections = {}
+    segments = report_text.split("---")
+    
+    section_map = {
+        "FUNDAMENTAL ANALYSIS": "fundamental",
+        "TECHNICAL ANALYSIS": "technical",
+        "SENTIMENT ANALYSIS": "sentiment",
+        "MARKET CONTEXT": "market_context",
+        "AI NARRATIVE SUMMARY": "narrative",
+        "RISK FACTORS": "risks",
+        "FINAL RECOMMENDATION": "recommendation",
+        "INVESTMENT HORIZON": "horizon"
+    }
+    
+    for segment in segments:
+        seg_upper = segment.upper().strip()
+        for header, key in section_map.items():
+            if header in seg_upper:
+                # Remove the header from the content
+                cleaned = segment
+                for fmt in [f"**{header}**", header]:
+                    cleaned = cleaned.replace(fmt, "")
+                sections[key] = cleaned.strip()
+                break
+    
+    return sections
+
 
 def summarize_results(state: dict) -> dict:
-    """Production Aggregator & Report Generator Node."""
+    """Production Aggregator & Report Generator Node — returns structured sections."""
     intent = state.get("intent", "")
     tickers = state.get("tickers", [])
     
     # Handle explicit error cases from master_node
     if intent == "error_quota":
         return {
-            "final_analysis": "### ⚠️ API Quota Reached\nYour Gemini API free-tier quota has been exhausted for today. Please wait for it to reset or switch to a different API key/model in your .env file.",
+            "final_analysis": json.dumps({
+                "recommendation": "⚠️ API Quota Reached",
+                "fundamental": "Your Gemini API free-tier quota has been exhausted.",
+                "technical": "", "sentiment": "", "market_context": "",
+                "narrative": "", "risks": "", "horizon": ""
+            }),
             "aggregated_data": []
         }
     if intent == "error_general":
         return {
-            "final_analysis": f"### ❌ System Error\nAn unexpected error occurred while parsing your query: {state.get('error', 'Unknown error')}",
+            "final_analysis": json.dumps({
+                "recommendation": f"❌ System Error: {state.get('error', 'Unknown')}",
+                "fundamental": "", "technical": "", "sentiment": "",
+                "market_context": "", "narrative": "", "risks": "", "horizon": ""
+            }),
             "aggregated_data": []
         }
     
@@ -61,9 +146,7 @@ def summarize_results(state: dict) -> dict:
         m_score = market_context.get(ticker, {}).get("market_context_score", 0.0)
         
         # Final Score & Confidence (40% Fundamental, 30% Technical, 30% Sentiment)
-        # Normalized to 10.0 scale
         final_score = (0.4 * f_score) + (0.3 * t_score) + (0.3 * s_score)
-        
         confidence_pct = round(final_score * 10, 1)
 
         # Recommendation logic
@@ -97,45 +180,33 @@ def summarize_results(state: dict) -> dict:
 
     # Mode-Specific Enhancements
     if intent == "comparison":
-        # Sort by final score descending
         aggregation_results.sort(key=lambda x: x['final_score'], reverse=True)
     
-    portfolio_stats = {}
-    if intent == "portfolio" and aggregation_results:
-        avg_score = sum(x['final_score'] for x in aggregation_results) / len(aggregation_results)
-        best = max(aggregation_results, key=lambda x: x['final_score'])
-        worst = min(aggregation_results, key=lambda x: x['final_score'])
-        portfolio_stats = {
-            "overall_score": round(avg_score, 2),
-            "best_performing": best['ticker'],
-            "worst_performing": worst['ticker'],
-            "diversification": "Good" if len(tickers) > 4 else "Low",
-            "risk_level": "Moderate" if 4 <= avg_score <= 7 else ("High" if avg_score < 4 else "Low")
-        }
-
     if not tickers and intent not in ["general_query", "error_quota", "error_general"]:
-        if intent == "unknown":
-            return {
-                "final_analysis": "I'm sorry, I specialize in stock market and financial analysis. I can't help with that particular question. Please try asking about a specific stock, a portfolio, or a financial concept.",
-                "aggregated_data": []
-            }
+        msg = "I'm sorry, I specialize in stock market and financial analysis." if intent == "unknown" else "No stock tickers could be resolved from your query."
         return {
-            "final_analysis": "No stock tickers could be resolved from your query. If you're asking about a specific company, please mention its name clearly. If you have a general financial question, I'll try my best to answer it.",
+            "final_analysis": json.dumps({
+                "recommendation": msg,
+                "fundamental": "", "technical": "", "sentiment": "",
+                "market_context": "", "narrative": "", "risks": "", "horizon": ""
+            }),
             "aggregated_data": []
         }
 
-    # Prepare data for LLM
+    # Step 1: Build DETERMINISTIC sections from raw agent data (always works)
+    report_sections = {}
+    if aggregation_results:
+        target = aggregation_results[0]
+        report_sections = build_deterministic_sections(target.get("raw_metrics", {}), target)
+
+    # Step 2: Try LLM for enhanced narrative (optional upgrade)
     data_for_llm = json.dumps(aggregation_results, indent=2)
+    conf_val = aggregation_results[0].get("confidence_level", "N/A") if aggregation_results else "N/A"
     
     template = """
 ### INSTITUTIONAL FINANCIAL RESEARCH REPORT GENERATOR
-You are a senior equity research analyst at a top-tier hedge fund. 
-Your task is to generate a professional, highly reliable, and non-duplicated report based ONLY on the provided Agent Data.
-
----
-
-**REPORT FOR [TICKER NAME]**
-Analysis Date: [LATEST DATE FROM DATA]
+You are a senior equity research analyst. Generate a professional report based ONLY on the provided Agent Data.
+Use the EXACT section headers below, separated by --- delimiters. Each bullet must be on its own line.
 
 ---
 
@@ -193,8 +264,6 @@ Analysis Date: [LATEST DATE FROM DATA]
 
 • **Market Risk:** [Insight]
 
-• **Industry Risk:** [Insight]
-
 ---
 
 **FINAL RECOMMENDATION**
@@ -210,20 +279,12 @@ Confidence Level: {confidence_placeholder}
 
 ---
 
-#### CRITICAL RULES:
-1. OUTPUT ONLY ANALYSIS: Do not include internal prompt instructions like "Analyze these core metrics" or "Translate these indicators" in your response headers or content.
-2. BULLET FORMATTING: Every insight must start on a NEW line with the '•' symbol. 
-3. LINE SPACING: Ensure exactly TWO newline characters between each bullet point to prevent inline collapse.
-4. PROFESSIONAL TONE: Use formal financial terminology. NO data dumps; interpret the 'Agent Data'.
-5. NO DUPLICATION: Each section must be unique and non-repetitive.
-6. RECOMMENDATION: Bold the final call as requested.
+RULES: Output ONLY analysis. No prompt instructions. Each bullet on a new line. Professional tone.
 
 Agent Data:
 {data_for_llm}
 """
     prompt = PromptTemplate(template=template, input_variables=["data_for_llm", "confidence_placeholder"])
-    
-    conf_val = aggregation_results[0].get("confidence_level", "N/A") if aggregation_results else "N/A"
 
     try:
         logger.info(f"Attempting {intent} institutional report generation...")
@@ -231,14 +292,20 @@ Agent Data:
             "data_for_llm": data_for_llm,
             "confidence_placeholder": conf_val
         }, temperature=0.3)
-        report = response.content.strip()
+        llm_report = response.content.strip()
         logger.info("LLM report generation successful.")
+        
+        # Parse LLM output and overlay onto deterministic sections
+        llm_sections = parse_llm_report(llm_report)
+        for key, value in llm_sections.items():
+            if value and len(value.strip()) > 10:
+                report_sections[key] = value
+                
     except Exception as e:
-        logger.error(f"LLM failure occurred: {e}. Switching to deterministic fallback.")
-        report = generate_fallback_report(aggregation_results)
+        logger.error(f"LLM failure: {e}. Using deterministic sections only.")
 
-    # Ensure we ALWAYS return final_analysis as a string and aggregated_data as a list
+    # Serialize sections as JSON string for state transport
     return {
-        "final_analysis": str(report), 
+        "final_analysis": json.dumps(report_sections),
         "aggregated_data": aggregation_results
     }
