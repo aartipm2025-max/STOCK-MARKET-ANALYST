@@ -207,7 +207,7 @@ submit_btn = False
 import re
 
 def clean_section_content(text: str) -> str:
-    """Strip any residual section headers from content to prevent duplicates."""
+    """Strip residual headers and force bullet points onto separate lines."""
     if not text:
         return ""
     headers_to_remove = [
@@ -225,6 +225,11 @@ def clean_section_content(text: str) -> str:
     cleaned = re.sub(r'^\s*#{1,4}\s*$', '', cleaned, flags=re.MULTILINE)
     # Remove leftover bold-only lines
     cleaned = re.sub(r'^\s*\*\*\s*\*\*\s*$', '', cleaned, flags=re.MULTILINE)
+    
+    # CRITICAL: Force newlines before every bullet point •
+    # This fixes LLM output like: "• Risk A: text • Risk B: text" -> separate lines
+    cleaned = re.sub(r'(?<!\n)\s*•\s*', '\n\n• ', cleaned)
+    
     # Collapse excessive newlines
     cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
     return cleaned.strip()

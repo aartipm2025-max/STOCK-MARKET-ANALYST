@@ -116,6 +116,8 @@ def parse_llm_report(report_text: str) -> dict:
                 
                 # Remove any leftover ### or ** lines that are now empty
                 cleaned = re.sub(r'^\s*[#*]+\s*$', '', cleaned, flags=re.MULTILINE)
+                # Force newlines before every bullet point •
+                cleaned = re.sub(r'(?<!\n)\s*•\s*', '\n\n• ', cleaned)
                 # Collapse excessive newlines
                 cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
                 
