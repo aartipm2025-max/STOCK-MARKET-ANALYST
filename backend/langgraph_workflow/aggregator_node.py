@@ -75,7 +75,8 @@ def build_deterministic_sections(ticker_data: dict, agg: dict) -> dict:
 
 
 def parse_llm_report(report_text: str) -> dict:
-    """Parse LLM report into structured sections using --- delimiter."""
+    """Parse LLM report into structured sections, stripping ALL header variants."""
+    import re
     sections = {}
     segments = report_text.split("---")
     
@@ -90,15 +91,37 @@ def parse_llm_report(report_text: str) -> dict:
         "INVESTMENT HORIZON": "horizon"
     }
     
+    # Headers to strip from content (all possible LLM formats)
+    all_headers = [
+        "FUNDAMENTAL ANALYSIS", "TECHNICAL ANALYSIS", "SENTIMENT ANALYSIS",
+        "MARKET CONTEXT", "AI NARRATIVE SUMMARY", "RISK FACTORS",
+        "FINAL RECOMMENDATION", "INVESTMENT HORIZON",
+        "REPORT FOR", "INSTITUTIONAL FINANCIAL", "CRITICAL RULES",
+        "Agent Data", "RULES:"
+    ]
+    
     for segment in segments:
         seg_upper = segment.upper().strip()
         for header, key in section_map.items():
             if header in seg_upper:
-                # Remove the header from the content
                 cleaned = segment
-                for fmt in [f"**{header}**", header]:
-                    cleaned = cleaned.replace(fmt, "")
-                sections[key] = cleaned.strip()
+                # Strip all header formats: **HEADER**, ### HEADER, HEADER, etc.
+                for h in all_headers:
+                    # Remove **Header** (bold)
+                    cleaned = re.sub(r'\*\*\s*' + re.escape(h) + r'\s*\*\*', '', cleaned, flags=re.IGNORECASE)
+                    # Remove ### Header (markdown heading)
+                    cleaned = re.sub(r'#{1,4}\s*' + re.escape(h), '', cleaned, flags=re.IGNORECASE)
+                    # Remove plain Header at start of line
+                    cleaned = re.sub(r'^\s*' + re.escape(h) + r'\s*$', '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+                
+                # Remove any leftover ### or ** lines that are now empty
+                cleaned = re.sub(r'^\s*[#*]+\s*$', '', cleaned, flags=re.MULTILINE)
+                # Collapse excessive newlines
+                cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+                
+                content = cleaned.strip()
+                if content:
+                    sections[key] = content
                 break
     
     return sections

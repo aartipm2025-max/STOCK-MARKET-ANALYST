@@ -204,6 +204,32 @@ st.markdown("<div style='height: 1rem; border-bottom: 1px solid #e2e8f0; margin-
 user_query = None
 submit_btn = False
 
+import re
+
+def clean_section_content(text: str) -> str:
+    """Strip any residual section headers from content to prevent duplicates."""
+    if not text:
+        return ""
+    headers_to_remove = [
+        "FUNDAMENTAL ANALYSIS", "TECHNICAL ANALYSIS", "SENTIMENT ANALYSIS",
+        "MARKET CONTEXT", "AI NARRATIVE SUMMARY", "RISK FACTORS",
+        "FINAL RECOMMENDATION", "INVESTMENT HORIZON", "REPORT FOR",
+        "INSTITUTIONAL FINANCIAL", "CRITICAL RULES", "Analysis Date"
+    ]
+    cleaned = text
+    for h in headers_to_remove:
+        cleaned = re.sub(r'\*\*\s*' + re.escape(h) + r'\s*\*\*', '', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'#{1,4}\s*' + re.escape(h) + r'[^\n]*', '', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'^\s*' + re.escape(h) + r'[^\n]*$', '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+    # Remove stray markdown heading lines
+    cleaned = re.sub(r'^\s*#{1,4}\s*$', '', cleaned, flags=re.MULTILINE)
+    # Remove leftover bold-only lines
+    cleaned = re.sub(r'^\s*\*\*\s*\*\*\s*$', '', cleaned, flags=re.MULTILINE)
+    # Collapse excessive newlines
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    return cleaned.strip()
+
+
 if st.session_state.results:
     res = st.session_state.results
     intent = res.get("intent", "unknown")
@@ -301,16 +327,7 @@ if st.session_state.results:
             pass
         st.divider()
 
-        # ─── 4. RATING SUMMARY (Metrics) ─────────────────────────────────
-        st.markdown("### RATING SUMMARY")
-        r1, r2, r3, r4 = st.columns(4)
-        r1.metric("Fundamental", scores.get("fundamental", 0))
-        r2.metric("Technical", scores.get("technical", 0))
-        r3.metric("Sentiment", scores.get("sentiment", 0))
-        r4.metric("Market Context", scores.get("market_context", 0))
-        st.divider()
-
-        # ─── 5. ANALYSIS BOXES (Structured from report_sections) ─────────
+        # ─── 4. ANALYSIS BOXES (Structured from report_sections) ─────────
         section_config = [
             ("fundamental", "📊 Fundamental Analysis"),
             ("technical", "📈 Technical Analysis"),
@@ -322,12 +339,14 @@ if st.session_state.results:
         ]
         
         for key, title in section_config:
-            content = report_sections.get(key, "")
-            if content and content.strip():
+            raw_content = report_sections.get(key, "")
+            content = clean_section_content(raw_content)
+            if content:
                 with st.container():
                     st.markdown(f"### {title}")
                     st.markdown(content)
                 st.divider()
+
 
 
 else:
