@@ -48,7 +48,7 @@ def summarize_results(state: dict) -> dict:
     fundamental = state.get("fundamental_data", {})
     technical = state.get("technical_data", {})
     sentiment = state.get("sentiment_data", {})
-    market_context = state.get("market_context_data", {})
+    market_context = state.get("context_data", {})
     portfolio = state.get("portfolio_data", {})
     
     aggregation_results = []
@@ -58,7 +58,7 @@ def summarize_results(state: dict) -> dict:
         f_score = fundamental.get(ticker, {}).get("fundamental_score", 0.0)
         t_score = technical.get(ticker, {}).get("technical_score", 0.0)
         s_score = sentiment.get(ticker, {}).get("sentiment_score", 0.0)
-        m_score = market_context.get(ticker, {}).get("context_score", 0.0)
+        m_score = market_context.get(ticker, {}).get("market_context_score", 0.0)
         
         # Final Score & Confidence (40% Fundamental, 30% Technical, 30% Sentiment)
         # Normalized to 10.0 scale

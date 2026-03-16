@@ -6,6 +6,7 @@ logger = get_logger("market_context_agent")
 
 def analyze_market_context(ticker: str) -> dict:
     """Agent to analyze broader market and sector context with 5-day Nifty trend."""
+    print(f"--- Running Market Context Agent for {ticker} ---")
     try:
         stock = yf.Ticker(ticker)
         info = stock.info or {}
@@ -14,9 +15,11 @@ def analyze_market_context(ticker: str) -> dict:
         # 1. Nifty 50 Trend (last 5 sessions as requested)
         nifty = yf.Ticker("^NSEI")
         hist = nifty.history(period="5d")
+        print(f"DEBUG: Nifty 50 history for {ticker}:\n{hist}")
         
         nifty_trend = "Data not available"
         change_val = 0
+        trend_dir = "Neutral"
         
         if not hist.empty and len(hist) >= 2:
             first_close = hist['Close'].iloc[0]
@@ -26,12 +29,15 @@ def analyze_market_context(ticker: str) -> dict:
             trend_dir = "Bullish" if change_val > 0.5 else ("Bearish" if change_val < -0.5 else "Neutral")
             nifty_trend = f"{trend_dir} ({change_val:.2f}% over 5 days)"
         
+        print(f"DEBUG: Nifty trend for {ticker}: {nifty_trend}")
+        
         # 2. Sector Performance (Simplified for reliability)
-        sector_perf = f"Sector: {sector} analysis relies on broader index trend ({trend_dir if 'trend_dir' in locals() else 'Neutral'})"
+        sector_perf = f"Sector: {sector} analysis relies on broader index trend ({trend_dir})"
         
         # 3. Peer Comparison
         price_hist = stock.history(period="5d")
         stock_perf = "N/A"
+        s_change = 0
         if not price_hist.empty and len(price_hist) >= 2:
             s_first = price_hist['Close'].iloc[0]
             s_last = price_hist['Close'].iloc[-1]
@@ -42,7 +48,9 @@ def analyze_market_context(ticker: str) -> dict:
         # Context Score calculation
         score = 5.0
         if change_val > 0: score += 2.0
-        if 's_change' in locals() and s_change > change_val: score += 3.0
+        if s_change > change_val: score += 3.0
+
+        print(f"DEBUG: Market Context Score for {ticker}: {score}")
 
         return {
             "agent": "market_context",
@@ -51,9 +59,10 @@ def analyze_market_context(ticker: str) -> dict:
             "nifty_trend": nifty_trend,
             "sector_performance": sector_perf,
             "peer_comparison": stock_perf,
-            "context_score": round(min(score, 10.0), 1)
+            "market_context_score": round(min(score, 10.0), 1)
         }
     except Exception as e:
+        print(f"ERROR: Market Context Agent failed for {ticker}: {e}")
         logger.error(f"Market context analysis failed: {e}")
         return {
             "agent": "market_context",
@@ -61,5 +70,5 @@ def analyze_market_context(ticker: str) -> dict:
             "nifty_trend": "Unavailable",
             "sector_performance": "Unavailable",
             "peer_comparison": "Unavailable",
-            "context_score": 0.0
+            "market_context_score": 0.0
         }

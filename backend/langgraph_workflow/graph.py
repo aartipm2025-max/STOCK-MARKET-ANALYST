@@ -21,7 +21,7 @@ class AgentState(TypedDict):
     fundamental_data: Dict[str, Any]
     technical_data: Dict[str, Any]
     sentiment_data: Dict[str, Any]
-    market_context_data: Dict[str, Any]
+    context_data: Dict[str, Any]
     portfolio_data: Dict[str, Any]
     final_analysis: str
     aggregated_data: List[Dict[str, Any]]
@@ -31,7 +31,7 @@ from concurrent.futures import ThreadPoolExecutor
 def run_fundamental_agent(state: AgentState) -> dict:
     intent = state.get("intent")
     tickers = state.get("tickers", [])
-    if intent not in ["single_stock", "comparison"] or not tickers:
+    if intent not in ["single_stock", "comparison", "portfolio"] or not tickers:
         return {"fundamental_data": {}}
     
     logger.info(f"Fundamental Agent starting in parallel for {tickers}")
@@ -65,12 +65,12 @@ def run_market_context_agent(state: AgentState) -> dict:
     intent = state.get("intent")
     tickers = state.get("tickers", [])
     if intent not in ["single_stock", "comparison", "portfolio"] or not tickers:
-        return {"market_context_data": {}}
+        return {"context_data": {}}
     
     logger.info(f"Market Context Agent starting in parallel for {tickers}")
     with ThreadPoolExecutor() as executor:
         results = dict(zip(tickers, executor.map(analyze_market_context, tickers)))
-    return {"market_context_data": results}
+    return {"context_data": results}
 
 def run_portfolio_agent(state: AgentState) -> dict:
     intent = state.get("intent")
@@ -96,6 +96,7 @@ def build_graph():
     builder.add_node("aggregator_node", summarize_results)
     
     # Execution Flow
+    print(f"DEBUG: Building graph with nodes: {builder.nodes.keys()}")
     builder.add_edge(START, "master_node")
     
     # Fan-out: One conditional edge that returns all agents
