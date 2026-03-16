@@ -223,6 +223,17 @@ if st.session_state.results:
         </div>
     """, unsafe_allow_html=True)
 
+    # Upgrade 3: Stock Price Chart
+    try:
+        if tickers:
+            hist_stock = yf.Ticker(tickers[0])
+            hist_df = hist_stock.history(period="6mo")
+            if not hist_df.empty:
+                st.markdown("### Price Performance (6 Months)")
+                st.area_chart(hist_df['Close'], use_container_width=True)
+    except Exception as e:
+        st.warning(f"Could not load price chart: {e}")
+
     if agg_data_list:
         if intent == "comparison":
             st.markdown("#### Market Comparison Table")
@@ -232,6 +243,7 @@ if st.session_state.results:
                     "Fund.": item['scores']['fundamental'],
                     "Tech.": item['scores']['technical'],
                     "Sent.": item['scores']['sentiment'],
+                    "Context": item['scores'].get('market_context', 0.0),
                     "Final": item['final_score'],
                     "Recommendation": item['recommendation']
                 } for item in agg_data_list
@@ -260,63 +272,131 @@ if st.session_state.results:
             f_color = get_score_color(scores.get("fundamental", 0))
             t_color = get_score_color(scores.get("technical", 0))
             s_color = get_score_color(scores.get("sentiment", 0))
+            m_color = get_score_color(scores.get("market_context", 0))
 
-            c1, c2, c3 = st.columns(3)
-            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.8rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.8rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
-            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.9rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.8rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}<span style="font-size: 1rem; color: #94a3b8; margin-left: 4px;">/ 10</span></div></div>', unsafe_allow_html=True)
+            c1, c2, c3, c4 = st.columns(4)
+            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
+            with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
 
+            # Upgrade 5: Rating Summary Panel
             st.markdown("<br>", unsafe_allow_html=True)
-            
+            st.markdown("### RATING SUMMARY")
+            r1, r2, r3, r4 = st.columns(4)
+            r1.metric("Fundamental", scores.get("fundamental", 0))
+            r2.metric("Technical", scores.get("technical", 0))
+            r3.metric("Sentiment", scores.get("sentiment", 0))
+            r4.metric("Market Context", scores.get("market_context", 0))
+            st.markdown("---")
+
             # Parsing the LLM report into sectioned cards
             full_report = res.get("analysis", "")
             
-            # We split by '---' to separate segments
+            # Extract segments by triple hyphens
             segments = full_report.split("---")
             
+            # Map sections to ensure order and avoid duplicates
+            report_sections = {
+                "fundamental": None,
+                "technical": None,
+                "sentiment": None,
+                "market_context": None,
+                "narrative": None,
+                "risks": None,
+                "recommendation": None,
+                "horizon": None
+            }
+            
             for segment in segments:
-                segment = segment.strip()
-                if not segment: continue
+                seg_upper = segment.upper().strip()
+                if "FUNDAMENTAL ANALYSIS" in seg_upper:
+                    report_sections["fundamental"] = segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip()
+                elif "TECHNICAL ANALYSIS" in seg_upper:
+                    report_sections["technical"] = segment.replace("**TECHNICAL ANALYSIS**", "").strip()
+                elif "SENTIMENT ANALYSIS" in seg_upper:
+                    report_sections["sentiment"] = segment.replace("**SENTIMENT ANALYSIS**", "").strip()
+                elif "MARKET CONTEXT" in seg_upper:
+                    report_sections["market_context"] = segment.replace("**MARKET CONTEXT**", "").strip()
+                elif "AI NARRATIVE SUMMARY" in seg_upper:
+                    report_sections["narrative"] = segment.replace("**AI NARRATIVE SUMMARY**", "").strip()
+                elif "RISK FACTORS" in seg_upper:
+                    report_sections["risks"] = segment.replace("**RISK FACTORS**", "").strip()
+                elif "FINAL RECOMMENDATION" in seg_upper:
+                    report_sections["recommendation"] = segment.replace("**FINAL RECOMMENDATION**", "").strip()
+                elif "INVESTMENT HORIZON" in seg_upper:
+                    report_sections["horizon"] = segment.replace("**INVESTMENT HORIZON**", "").strip()
+
+            # Render in fixed order
+            if report_sections["fundamental"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">📊 Fundamental Analysis</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["fundamental"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["technical"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">📈 Technical Analysis</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["technical"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["sentiment"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">💬 Sentiment Analysis</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["sentiment"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["market_context"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">🌐 Market Context</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["market_context"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["narrative"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">🤖 AI Narrative Summary</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["narrative"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["risks"]:
+                st.markdown('<div class="analysis-card"><div class="section-header">⚠️ Risk Factors</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["risks"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if report_sections["recommendation"]:
+                # Parse recommendation and confidence
+                rec_lines = report_sections["recommendation"].split("\n")
+                rec_call = rec_lines[0].replace("**", "").strip()
+                conf_level = ""
+                for line in rec_lines:
+                    if "Confidence Level:" in line:
+                        conf_level = line.replace("Confidence Level:", "").strip()
+                        break
                 
-                # Check for headers to style the card
-                if "FUNDAMENTAL ANALYSIS" in segment:
-                    st.markdown('<div class="analysis-card"><div class="section-header">📊 Fundamental Analysis</div>', unsafe_allow_html=True)
-                    st.markdown(segment.replace("**FUNDAMENTAL ANALYSIS**", "").strip())
-                    st.markdown('</div>', unsafe_allow_html=True)
-                elif "TECHNICAL ANALYSIS" in segment:
-                    st.markdown('<div class="analysis-card"><div class="section-header">📈 Technical Indicators</div>', unsafe_allow_html=True)
-                    st.markdown(segment.replace("**TECHNICAL ANALYSIS**", "").strip())
-                    st.markdown('</div>', unsafe_allow_html=True)
-                elif "SENTIMENT ANALYSIS" in segment:
-                    st.markdown('<div class="analysis-card"><div class="section-header">💬 Market Sentiment Insights</div>', unsafe_allow_html=True)
-                    st.markdown(segment.replace("**SENTIMENT ANALYSIS**", "").strip())
-                    st.markdown('</div>', unsafe_allow_html=True)
-                elif "AI NARRATIVE SUMMARY" in segment:
-                    st.markdown('<div class="analysis-card"><div class="section-header">🤖 AI Narrative Summary</div>', unsafe_allow_html=True)
-                    st.markdown(segment.replace("**AI NARRATIVE SUMMARY**", "").strip())
-                    st.markdown('</div>', unsafe_allow_html=True)
-                elif "FINAL RECOMMENDATION" in segment:
-                    rec_text = segment.replace("**FINAL RECOMMENDATION**", "").strip().upper()
-                    
-                    # Recommendation color logic
-                    rec_bg = "#fef2f2" # Light Red
-                    rec_border = "#fecaca"
-                    rec_text_color = "#dc2626"
-                    
-                    if "BUY" in rec_text:
-                        rec_bg = "#ecfdf5" # Light Green
-                        rec_border = "#d1fae5"
-                        rec_text_color = "#059669"
-                    elif "HOLD" in rec_text:
-                        rec_bg = "#fffbeb" # Light Yellow
-                        rec_border = "#fef3c7"
-                        rec_text_color = "#d97706"
-                    
-                    st.markdown(f"""
-                        <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color};">
-                            Final Recommendation: {rec_text.replace("**", "").replace("RECOMMENDATION:", "").strip()}
+                # Recommendation color logic
+                rec_bg = "#fef2f2" # Light Red
+                rec_border = "#fecaca"
+                rec_text_color = "#dc2626"
+                
+                if "STRONG BUY" in rec_call or "BUY" in rec_call:
+                    rec_bg = "#ecfdf5" # Light Green
+                    rec_border = "#d1fae5"
+                    rec_text_color = "#059669"
+                elif "HOLD" in rec_call:
+                    rec_bg = "#fffbeb" # Light Yellow
+                    rec_border = "#fef3c7"
+                    rec_text_color = "#d97706"
+                
+                st.markdown(f"""
+                    <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px;">
+                        <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
+                        <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
+                            Confidence Level: {conf_level}
                         </div>
-                    """, unsafe_allow_html=True)
+                    </div>
+                """, unsafe_allow_html=True)
+
+            if report_sections["horizon"]:
+                st.markdown('<br>', unsafe_allow_html=True)
+                st.markdown('<div class="analysis-card"><div class="section-header">⏳ Investment Horizon</div>', unsafe_allow_html=True)
+                st.markdown(report_sections["horizon"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
 
 else:

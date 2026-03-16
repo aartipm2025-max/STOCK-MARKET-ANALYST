@@ -45,17 +45,39 @@ def analyze_technicals(ticker: str) -> dict:
         elif latest['RSI'] < 30: score += 2.5 # Oversold is good for buy
         if latest['MACD'] > latest['Signal']: score += 2.5
         
+        # Prepare Interpretations
+        rsi_val = latest['RSI']
+        rsi_desc = "Neutral"
+        if rsi_val > 70: rsi_desc = f"Overbought ({round(rsi_val, 2)})"
+        elif rsi_val < 30: rsi_desc = f"Oversold ({round(rsi_val, 2)})"
+        else: rsi_desc = f"Neutral ({round(rsi_val, 2)})"
+
+        price = latest['Close']
+        sma_50 = latest['SMA_50']
+        sma_50_desc = "Data not available"
+        if not pd.isna(sma_50):
+            status = "above" if price > sma_50 else "below"
+            sentiment = "bullish" if price > sma_50 else "bearish"
+            sma_50_desc = f"Price is trading {status} the 50-day moving average, indicating {sentiment} momentum."
+
+        sma_200 = latest['SMA_200']
+        sma_200_desc = "Data not available"
+        if not pd.isna(sma_200):
+            status = "above" if price > sma_200 else "below"
+            sentiment = "long-term bullish" if price > sma_200 else "long-term bearish"
+            sma_200_desc = f"Price is trading {status} the 200-day moving average, showing {sentiment} trend."
+
         return {
             "agent": "technical",
             "ticker": ticker,
             "latest_data_date": latest_date,
             "indicators": {
-                "current_price": round(latest['Close'], 2),
-                "sma_50": round(latest['SMA_50'], 2) if not pd.isna(latest['SMA_50']) else None,
-                "sma_200": round(latest['SMA_200'], 2) if not pd.isna(latest['SMA_200']) else None,
-                "rsi": round(latest['RSI'], 2) if not pd.isna(latest['RSI']) else None,
+                "current_price": round(price, 2),
+                "rsi_interpretation": rsi_desc,
+                "sma_50_interpretation": sma_50_desc,
+                "sma_200_interpretation": sma_200_desc,
                 "macd_signal": "bullish" if latest['MACD'] > latest['Signal'] else "bearish",
-                "volume_trend": "increasing" if latest['Volume'] >= latest['Vol_Avg'] else "decreasing"
+                "volume_trend": "Increasing" if latest['Volume'] >= latest['Vol_Avg'] else "Decreasing"
             },
             "technical_score": score
         }

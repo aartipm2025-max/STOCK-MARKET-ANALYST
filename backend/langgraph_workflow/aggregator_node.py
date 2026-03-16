@@ -48,6 +48,7 @@ def summarize_results(state: dict) -> dict:
     fundamental = state.get("fundamental_data", {})
     technical = state.get("technical_data", {})
     sentiment = state.get("sentiment_data", {})
+    market_context = state.get("market_context_data", {})
     portfolio = state.get("portfolio_data", {})
     
     aggregation_results = []
@@ -57,14 +58,19 @@ def summarize_results(state: dict) -> dict:
         f_score = fundamental.get(ticker, {}).get("fundamental_score", 0.0)
         t_score = technical.get(ticker, {}).get("technical_score", 0.0)
         s_score = sentiment.get(ticker, {}).get("sentiment_score", 0.0)
+        m_score = market_context.get(ticker, {}).get("context_score", 0.0)
         
         # Final Score = (0.4 * F) + (0.4 * T) + (0.2 * S)
         final_score = (0.4 * f_score) + (0.4 * t_score) + (0.2 * s_score)
         
+        # Confidence Score = (0.4 * F) + (0.3 * T) + (0.3 * S) -> Normalized to 100%
+        conf_score = (0.35 * f_score) + (0.3 * t_score) + (0.2 * s_score) + (0.15 * m_score) # Adjusted to include Market Context
+        confidence_pct = round(conf_score * 10, 1)
+
         # Recommendation logic
-        if final_score >= 8: rec = "STRONG BUY"
-        elif final_score >= 6: rec = "BUY"
-        elif final_score >= 4: rec = "HOLD"
+        if final_score >= 8.0: rec = "STRONG BUY"
+        elif final_score >= 6.5: rec = "BUY"
+        elif final_score >= 4.5: rec = "HOLD"
         else: rec = "AVOID"
 
         # Extract latest date from technical data
@@ -72,14 +78,21 @@ def summarize_results(state: dict) -> dict:
         
         aggregation_results.append({
             "ticker": ticker,
-            "scores": {"fundamental": f_score, "technical": t_score, "sentiment": s_score},
+            "scores": {
+                "fundamental": f_score, 
+                "technical": t_score, 
+                "sentiment": s_score,
+                "market_context": m_score
+            },
             "final_score": round(final_score, 2),
+            "confidence_level": f"{confidence_pct}%",
             "recommendation": rec,
             "analysis_date": analysis_date,
             "raw_metrics": {
                 "f": fundamental.get(ticker),
                 "t": technical.get(ticker),
-                "s": sentiment.get(ticker)
+                "s": sentiment.get(ticker),
+                "m": market_context.get(ticker)
             }
         })
 
@@ -114,99 +127,100 @@ def summarize_results(state: dict) -> dict:
 
     # Prepare data for LLM
     data_for_llm = json.dumps(aggregation_results, indent=2)
-    portfolio_str = json.dumps(portfolio, indent=2) if portfolio else "N/A"
     
     template = """
-### FINAL REPORT GENERATOR PROMPT
-You are a senior financial analyst. Generate a structured report based on user intent: {intent}.
+### INSTITUTIONAL FINANCIAL RESEARCH REPORT GENERATOR
+You are a senior equity research analyst at a top-tier hedge fund. Generate a professional, highly reliable, and non-duplicated report.
 
-#### MANDATORY OUTPUT STRUCTURE (Use this exact format for each ticker):
+#### MANDATORY REPORT STRUCTURE (Strict Order):
 
 **REPORT FOR [TICKER NAME]**
+Analysis Date: [LATEST DATE FROM DATA]
 
 ---
 
 **FUNDAMENTAL ANALYSIS**
-
-Key Insights:
-
-• **Revenue Growth:** Brief explanation
-
-• **P/E Ratio:** Brief explanation
-
-• **Return on Equity:** Brief explanation
-
-• **Debt-to-Equity:** Brief explanation
-
-• **Operating Margin:** Brief explanation
+Analyze these core metrics with financial reasoning:
+• **Revenue Growth:** [State value and explain performance]
+• **P/E Ratio:** [State value and explain valuation context]
+• **Return on Equity:** [State value and explain capital efficiency]
+• **Debt-to-Equity:** [State value and explain risk profile]
+• **Operating Margin:** [State value and explain operational efficiency]
 
 ---
 
 **TECHNICAL ANALYSIS**
-
-Key Indicators:
-
-• **RSI:** Brief explanation
-
-• **MACD:** Brief explanation
-
-• **50-Day Moving Average:** Brief explanation
-
-• **200-Day Moving Average:** Brief explanation
-
-• **Volume Trend:** Brief explanation
+Translate these indicators into market trend interpretations:
+• **RSI:** [Status and market interpretation]
+• **MACD:** [Current trend momentum]
+• **Moving Averages:** [Relationship between price and SMAs]
 
 ---
 
 **SENTIMENT ANALYSIS**
+Provide institutional-grade market mood analysis:
+• **Market Sentiment:** [Calculated tone from news]
+• **Risk/Confidence Drivers:** [What is currently moving price action]
 
-Market Sentiment Insights:
+---
 
-• **News Sentiment:** Brief explanation
-
-• **Industry Outlook:** Brief explanation
-
-• **Investor Confidence:** Brief explanation
+**MARKET CONTEXT**
+Analyze the broader environment using 'm' data:
+• **Nifty 50 Trend:** [Explain index performance impact]
+• **Sector Performance:** [Relative strength of the industry]
+• **Peer Comparison:** [How stock compares to industry peers]
 
 ---
 
 **AI NARRATIVE SUMMARY**
+Synthesize all agent inputs into a coherent investment thesis:
+• **Growth Outlook:** [Synthesized expectation]
+• **Key Strengths:** [Primary competitive advantages]
+• **Key Risks:** [Primary headwinds]
 
-• **Growth Outlook:** Brief explanation
+---
 
-• **Key Strengths:** Brief explanation
-
-• **Risks:** Brief explanation
+**RISK FACTORS**
+Identify and explain primary investment risks:
+• **Technical Risk:** [Based on momentum/volatility]
+• **Fundamental Risk:** [Based on financial health/metrics]
+• **Market Risk:** [Based on macro/index trends]
+• **Industry Risk:** [Sector specific headwinds]
 
 ---
 
 **FINAL RECOMMENDATION**
+**[STRONG BUY / BUY / HOLD / AVOID]**
+Confidence Level: {confidence_placeholder}
 
-**[STRONG BUY / BUY / HOLD / SELL]**
+---
 
-#### RULES:
-1. Every bullet point MUST start on a new line.
-2. YOU MUST PLACE TWO NEWLINE CHARACTERS (\n\n) BETWEEN EVERY BULLET POINT.
-3. NEVER place multiple bullets on the same line.
-4. BOLD all financial terms and metrics (e.g., **Revenue Growth**, **RSI**).
-5. NEVER return long paragraphs. Keep explanations concise and readable.
-6. If data is missing (DATA_NOT_AVAILABLE), still list the bullet point but state "Data not available".
+**INVESTMENT HORIZON**
+• **Short-Term Outlook:** [Explanation based on technical signals and momentum]
+• **Long-Term Outlook:** [Explanation based on fundamentals and macro sentiment]
+
+---
+
+#### CRITICAL RULES:
+1. PROFESSIONAL TONE: Use formal financial terminology.
+2. NO RAW DATA DUMPS: Interpret the numbers provided in the 'Agent Data'.
+3. FORMATTING: Use bolding for metrics and headers. Use exactly two newlines between bullets.
+4. RECOMMENDATION: Bold the final call. Include the "Confidence Level" provided.
+5. NO DUPLICATION: Each section must be unique and non-repetitive.
 
 Agent Data:
 {data_for_llm}
-
-Portfolio Metrics (if applicable):
-{portfolio_stats}
 """
-    prompt = PromptTemplate(template=template, input_variables=["data_for_llm", "portfolio_str"])
+    prompt = PromptTemplate(template=template, input_variables=["data_for_llm", "confidence_placeholder"])
     
+    conf_val = aggregation_results[0].get("confidence_level", "N/A") if aggregation_results else "N/A"
+
     try:
-        logger.info(f"Attempting {intent} report generation with failover support...")
+        logger.info(f"Attempting {intent} institutional report generation...")
         response = invoke_with_failover(prompt, {
-            "data_for_llm": data_for_llm, 
-            "portfolio_stats": json.dumps(portfolio_stats),
-            "intent": intent
-        }, temperature=0.5)
+            "data_for_llm": data_for_llm,
+            "confidence_placeholder": conf_val
+        }, temperature=0.3)
         report = response.content.strip()
         logger.info("LLM report generation successful.")
     except Exception as e:

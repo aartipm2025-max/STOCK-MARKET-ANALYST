@@ -9,6 +9,7 @@ from agents.fundamental_agent import analyze_fundamentals
 from agents.technical_agent import analyze_technicals
 from agents.sentiment_agent import analyze_sentiment
 from agents.portfolio_agent import analyze_portfolio
+from agents.market_context_agent import analyze_market_context
 from utils.logger import get_logger
 
 logger = get_logger("graph")
@@ -20,6 +21,7 @@ class AgentState(TypedDict):
     fundamental_data: Dict[str, Any]
     technical_data: Dict[str, Any]
     sentiment_data: Dict[str, Any]
+    market_context_data: Dict[str, Any]
     portfolio_data: Dict[str, Any]
     final_analysis: str
     aggregated_data: List[Dict[str, Any]]
@@ -59,6 +61,17 @@ def run_sentiment_agent(state: AgentState) -> dict:
         results = dict(zip(tickers, executor.map(analyze_sentiment, tickers)))
     return {"sentiment_data": results}
 
+def run_market_context_agent(state: AgentState) -> dict:
+    intent = state.get("intent")
+    tickers = state.get("tickers", [])
+    if intent not in ["single_stock", "comparison", "portfolio"] or not tickers:
+        return {"market_context_data": {}}
+    
+    logger.info(f"Market Context Agent starting in parallel for {tickers}")
+    with ThreadPoolExecutor() as executor:
+        results = dict(zip(tickers, executor.map(analyze_market_context, tickers)))
+    return {"market_context_data": results}
+
 def run_portfolio_agent(state: AgentState) -> dict:
     intent = state.get("intent")
     tickers = state.get("tickers", [])
@@ -78,6 +91,7 @@ def build_graph():
     builder.add_node("fundamental_agent", run_fundamental_agent)
     builder.add_node("technical_agent", run_technical_agent)
     builder.add_node("sentiment_agent", run_sentiment_agent)
+    builder.add_node("market_context_agent", run_market_context_agent)
     builder.add_node("portfolio_agent", run_portfolio_agent)
     builder.add_node("aggregator_node", summarize_results)
     
@@ -87,21 +101,24 @@ def build_graph():
     # Fan-out: One conditional edge that returns all agents
     builder.add_conditional_edges(
         "master_node",
-        lambda x: ["fundamental_agent", "technical_agent", "sentiment_agent", "portfolio_agent"],
+        lambda x: ["fundamental_agent", "technical_agent", "sentiment_agent", "market_context_agent", "portfolio_agent"],
         {
             "fundamental_agent": "fundamental_agent",
             "technical_agent": "technical_agent",
             "sentiment_agent": "sentiment_agent",
+            "market_context_agent": "market_context_agent",
             "portfolio_agent": "portfolio_agent"
         }
     )
     
-    # Static Fan-in: Wait for all 4 incoming edges
+    # Static Fan-in: Wait for all 5 incoming edges
     builder.add_edge("fundamental_agent", "aggregator_node")
     builder.add_edge("technical_agent", "aggregator_node")
     builder.add_edge("sentiment_agent", "aggregator_node")
+    builder.add_edge("market_context_agent", "aggregator_node")
     builder.add_edge("portfolio_agent", "aggregator_node")
     
     builder.add_edge("aggregator_node", END)
     
     return builder.compile()
+
