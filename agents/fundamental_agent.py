@@ -32,14 +32,17 @@ def analyze_fundamentals(ticker: str) -> dict:
 
         def get_metric_from_df(df, possible_keys):
             if df is None or df.empty: return None
+            # Normalize index: lower case and remove spaces
+            normalized_index = {str(k).lower().replace(" ", ""): k for k in df.index}
             for key in possible_keys:
-                if key in df.index:
-                    return df.loc[key]
+                normalized_key = key.lower().replace(" ", "")
+                if normalized_key in normalized_index:
+                    return df.loc[normalized_index[normalized_key]]
             return None
 
-        # 1. Revenue Growth (Direct Calculation & Info Fallback)
+        # 1. Revenue Growth
         try:
-            rev_data = get_metric_from_df(financials, ["Total Revenue", "TotalRevenue", "Operating Revenue"])
+            rev_data = get_metric_from_df(financials, ["Total Revenue", "Operating Revenue", "TotalRevenue"])
             if rev_data is not None and len(rev_data) >= 2:
                 current_rev = rev_data.iloc[0]
                 prev_rev = rev_data.iloc[1]
@@ -48,43 +51,46 @@ def analyze_fundamentals(ticker: str) -> dict:
             
             if metrics["revenue_growth"] is None:
                 metrics["revenue_growth"] = info.get("revenueGrowth")
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: Revenue Growth error: {e}")
 
         # 2. Operating Margin
         try:
-            op_inc = get_metric_from_df(financials, ["Operating Income", "OperatingIncome"])
-            total_rev = get_metric_from_df(financials, ["Total Revenue", "TotalRevenue"])
-            if op_inc is not None and total_rev is not None and total_rev.iloc[0] != 0:
+            op_inc = get_metric_from_df(financials, ["Operating Income"])
+            total_rev = get_metric_from_df(financials, ["Total Revenue", "Operating Revenue"])
+            if op_inc is not None and total_rev is not None and not total_rev.empty and total_rev.iloc[0] != 0:
                 metrics["operating_margin"] = op_inc.iloc[0] / total_rev.iloc[0]
             
             if metrics["operating_margin"] is None:
                 metrics["operating_margin"] = info.get("operatingMargins")
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: Op Margin error: {e}")
 
         # 3. ROE
         try:
-            net_inc = get_metric_from_df(financials, ["Net Income", "NetIncome", "Net Income Common Stockholders"])
-            equity = get_metric_from_df(balance_sheet, ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity", "Total Equity"])
-            if net_inc is not None and equity is not None and equity.iloc[0] != 0:
+            net_inc = get_metric_from_df(financials, ["Net Income"])
+            equity = get_metric_from_df(balance_sheet, ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity"])
+            if net_inc is not None and equity is not None and not equity.empty and equity.iloc[0] != 0:
                 metrics["roe"] = net_inc.iloc[0] / equity.iloc[0]
             
             if metrics["roe"] is None:
                 metrics["roe"] = info.get("returnOnEquity")
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: ROE error: {e}")
 
         # 4. Debt to Equity
         try:
-            equity_val = get_metric_from_df(balance_sheet, ["Stockholders Equity", "Total Equity Gross Minority Interest", "Common Stock Equity", "Total Equity"])
+            equity_val = get_metric_from_df(balance_sheet, ["Stockholders Equity", "Common Stock Equity", "Total Equity"])
             debt = get_metric_from_df(balance_sheet, ["Total Debt", "Net Debt"])
-            if debt is not None and equity_val is not None and equity_val.iloc[0] != 0:
+            if debt is not None and equity_val is not None and not equity_val.empty and equity_val.iloc[0] != 0:
                 metrics["debt_to_equity"] = debt.iloc[0] / equity_val.iloc[0]
             
             if metrics["debt_to_equity"] is None:
-                # info returns debtToEquity usually as a percentage or raw number
                 de = info.get("debtToEquity")
                 if de is not None:
                     metrics["debt_to_equity"] = de / 100.0 if de > 5 else de
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: D/E error: {e}")
 
         # 5. PE Ratio
         try:
@@ -94,35 +100,43 @@ def analyze_fundamentals(ticker: str) -> dict:
                 eps = info.get("trailingEps")
                 if price and eps and eps != 0:
                     metrics["pe_ratio"] = price / eps
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: PE error: {e}")
 
-        print(f"DEBUG: Calculated metrics for {ticker}: {metrics}")
+        print(f"DEBUG: Final metrics for {ticker}: {metrics}")
 
-        # Validate and Format
+        # Validate and Format (Deduplicate data for scoring)
         validated_metrics = {}
         processed_metrics = {}
         for k, v in metrics.items():
             if v is not None and not (isinstance(v, float) and np.isnan(v)):
-                num_val = float(v)
-                processed_metrics[k] = num_val
-                if k in ["revenue_growth", "roe", "operating_margin"]:
-                    validated_metrics[k] = f"{round(num_val * 100, 2):.2f}%"
-                else:
-                    validated_metrics[k] = str(round(num_val, 2))
+                try:
+                    num_val = float(v)
+                    processed_metrics[k] = num_val
+                    if k in ["revenue_growth", "roe", "operating_margin"]:
+                        validated_metrics[k] = f"{round(num_val * 100, 2):.2f}%"
+                    else:
+                        validated_metrics[k] = str(round(num_val, 2))
+                except:
+                    validated_metrics[k] = "Unavailable"
+                    processed_metrics[k] = None
             else:
                 validated_metrics[k] = "Unavailable"
                 processed_metrics[k] = None
 
         # Determine Score (0-10)
         score = 0.0
-        if processed_metrics.get("revenue_growth", 0) and processed_metrics["revenue_growth"] > 0.1: score += 2.5
-        if processed_metrics.get("roe", 0) and processed_metrics["roe"] > 0.15: score += 2.5
-        if processed_metrics.get("operating_margin", 0) and processed_metrics["operating_margin"] > 0.15: score += 2.5
-        de = processed_metrics.get("debt_to_equity", 3.0) or 3.0
-        if de < 1.0: score += 2.5
-        elif de < 2.0: score += 1.0
-
-        print(f"DEBUG: Fundamental Score for {ticker}: {score}")
+        if processed_metrics.get("revenue_growth") and processed_metrics["revenue_growth"] > 0.1: score += 2.5
+        if processed_metrics.get("roe") and processed_metrics["roe"] > 0.15: score += 2.5
+        if processed_metrics.get("operating_margin") and processed_metrics["operating_margin"] > 0.15: score += 2.5
+        
+        de = processed_metrics.get("debt_to_equity")
+        if de is not None:
+            if de < 1.0: score += 2.5
+            elif de < 2.0: score += 1.0
+        else:
+            # Default cautious score for high-quality stocks if D/E missing but other metrics strong
+            if score > 5.0: score += 1.5
 
         return {
             "agent": "fundamental",
@@ -132,11 +146,11 @@ def analyze_fundamentals(ticker: str) -> dict:
                 **validated_metrics
             },
             "fundamental_score": round(min(score, 10.0), 1),
-            "revenue_growth": metrics["revenue_growth"],
-            "pe_ratio": metrics["pe_ratio"],
+            "revenue": metrics["revenue_growth"],
+            "pe": metrics["pe_ratio"],
             "roe": metrics["roe"],
-            "debt_to_equity": metrics["debt_to_equity"],
-            "operating_margin": metrics["operating_margin"]
+            "de": metrics["debt_to_equity"],
+            "margin": metrics["operating_margin"]
         }
     except Exception as e:
         print(f"ERROR: Fundamental Agent failed for {ticker}: {e}")
