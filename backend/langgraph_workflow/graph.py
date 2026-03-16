@@ -16,6 +16,7 @@ logger = get_logger("graph")
 
 class AgentState(TypedDict):
     query: str
+    mode: str
     intent: str
     tickers: List[str]
     fundamental_data: Dict[str, Any]

@@ -23,6 +23,7 @@ app = FastAPI(title="Multi-Agent Market Analyst API", lifespan=lifespan)
 
 class QueryRequest(BaseModel):
     query: str
+    mode: str = "Chat"
 
 class QueryResponse(BaseModel):
     intent: str
@@ -43,11 +44,13 @@ async def analyze_query(req: QueryRequest):
             
         initial_state = {
             "query": req.query,
+            "mode": req.mode,
             "intent": "",
             "tickers": [],
             "fundamental_data": {},
             "technical_data": {},
             "sentiment_data": {},
+            "context_data": {},
             "portfolio_data": {},
             "final_analysis": "",
             "aggregated_data": []

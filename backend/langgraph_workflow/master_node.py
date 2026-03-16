@@ -74,18 +74,22 @@ Output Format (STRICT JSON ONLY, NO PREAMBLE):
 def master_node_func(state: dict) -> dict:
     """Master node logic to process initial query and routing."""
     query = state.get("query", "")
+    mode = state.get("mode", "Chat")
+    
     parsed = parse_query_and_intent(query)
     
     intent = parsed["intent"]
     tickers = parsed["tickers"]
     
-    # Calculate how many agents we expect to join at the end
-    if intent == "portfolio":
-        total_agents = 3 # portfolio, sentiment, technical
-    elif intent in ["single_stock", "comparison"] and tickers:
-        total_agents = 3 # fundamental, technical, sentiment
-    else:
-        total_agents = 0 # unknown or no tickers goes straight to aggregator
+    # CRITICAL: Override intent based on explicit UI mode selection
+    if mode == "Single Stock":
+        intent = "single_stock"
+    elif mode == "Compare Stocks":
+        intent = "comparison"
+    elif mode == "Portfolio":
+        intent = "portfolio"
+    
+    logger.info(f"Final resolved intent after UI mode override: {intent}")
         
     return {
         "intent": intent,

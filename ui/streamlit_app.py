@@ -153,7 +153,7 @@ def call_market_api(query, mode=None, force_integrated=False):
     if not force_integrated:
         endpoint = f"{api_url_setting}/analyze"
         try:
-            response = requests.post(endpoint, json={"query": hinted_query}, timeout=5) # Short timeout for check
+            response = requests.post(endpoint, json={"query": query, "mode": mode or "Chat"}, timeout=5) # Short timeout for check
             if response.status_code == 200:
                 return response.json()
         except:
@@ -163,7 +163,8 @@ def call_market_api(query, mode=None, force_integrated=False):
     try:
         graph = build_graph()
         initial_state = {
-            "query": hinted_query,
+            "query": query,
+            "mode": mode or "Chat",
             "intent": "",
             "tickers": [],
             "fundamental_data": {},
