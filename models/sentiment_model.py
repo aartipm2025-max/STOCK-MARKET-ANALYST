@@ -10,7 +10,8 @@ def analyze_news_sentiment(ticker: str, news_items: list) -> dict:
     if not news_items:
         return {"sentiment_score": 5.0, "positive": 0, "neutral": 0, "negative": 0, "summary": "No news found."}
 
-    news_text = "\n\n".join([f"Headline: {item.get('title', '')}\nSnippet: {item.get('body', '')}" for item in news_items])
+    # Keep the prompt small: Groq's free tier allows only ~8k tokens/minute
+    news_text = "\n\n".join([f"Headline: {item.get('title', '')}\nSnippet: {(item.get('body') or '')[:200]}" for item in news_items[:8]])
     
     template = """
 ### SENTIMENT ANALYST AGENT PROMPT

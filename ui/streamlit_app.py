@@ -20,6 +20,7 @@ except:
     pass
 
 from backend.langgraph_workflow.graph import build_graph
+from ui.multi_report import render_multi_report
 
 # ── Page Config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -259,8 +260,20 @@ if st.session_state.results:
         # Fallback: if it's a plain string (old format), show it raw
         report_sections = {"narrative": raw_analysis}
     
+    # Multi-stock (compare / portfolio) results carry a verdict
+    is_multi = isinstance(report_sections, dict) and bool(report_sections.get("verdict")) and len(agg_data_list) > 1
+
     # Clean Ticker Display
     display_ticker = tickers[0] if tickers else "Unknown"
+    report_subtitle = "Comprehensive Market Analysis Report"
+    if is_multi:
+        names = [a["ticker"].replace(".NS", "").replace(".BO", "") for a in agg_data_list]
+        if report_sections.get("mode") == "portfolio":
+            display_ticker = "Portfolio Review"
+            report_subtitle = f"{len(names)} holdings: " + ", ".join(names)
+        else:
+            display_ticker = " vs ".join(names)
+            report_subtitle = "Head-to-head Stock Comparison"
     
     # Extract Date from the first valid record
     analysis_date = "N/A"
@@ -270,7 +283,7 @@ if st.session_state.results:
     st.markdown(f"""
         <div style='text-align: center; margin-bottom: 2rem;'>
             <h1 style='color: #1e293b; font-size: 3rem; margin-bottom: 0px;'>{display_ticker}</h1>
-            <p style='color: #64748b; font-size: 1.2rem; font-weight: 500; margin-bottom: 5px;'>Comprehensive Market Analysis Report</p>
+            <p style='color: #64748b; font-size: 1.2rem; font-weight: 500; margin-bottom: 5px;'>{report_subtitle}</p>
             <p style='color: #475569; font-size: 1rem; font-weight: 600;'>Data Analyzed Up To: {analysis_date}</p>
         </div>
     """, unsafe_allow_html=True)
@@ -284,92 +297,94 @@ if st.session_state.results:
             </div>
         """, unsafe_allow_html=True)
 
-    # ─── 1. FINAL RECOMMENDATION (Top of Page) ───────────────────────────
-    rec_text = report_sections.get("recommendation", "")
-    if rec_text:
-        with st.container():
-            rec_lines = rec_text.split("\n")
-            rec_call = rec_lines[0].replace("**", "").strip()
-            conf_level = "N/A"
-            for line in rec_lines:
-                if "Confidence Level:" in line:
-                    conf_level = line.replace("Confidence Level:", "").strip()
-                    break
+    if is_multi:
+        render_multi_report(report_sections, agg_data_list, clean_section_content)
+    else:
+        # ─── 1. FINAL RECOMMENDATION (Top of Page) ───────────────────────────
+        rec_text = report_sections.get("recommendation", "")
+        if rec_text:
+            with st.container():
+                rec_lines = rec_text.split("\n")
+                rec_call = rec_lines[0].replace("**", "").strip()
+                conf_level = "N/A"
+                for line in rec_lines:
+                    if "Confidence Level:" in line:
+                        conf_level = line.replace("Confidence Level:", "").strip()
+                        break
             
-            rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626"
-            if "STRONG BUY" in rec_call.upper() or "BUY" in rec_call.upper():
-                rec_bg, rec_border, rec_text_color = "#ecfdf5", "#d1fae5", "#059669"
-            elif "HOLD" in rec_call.upper():
-                rec_bg, rec_border, rec_text_color = "#fffbeb", "#fef3c7", "#d97706"
+                rec_bg, rec_border, rec_text_color = "#fef2f2", "#fecaca", "#dc2626"
+                if "STRONG BUY" in rec_call.upper() or "BUY" in rec_call.upper():
+                    rec_bg, rec_border, rec_text_color = "#ecfdf5", "#d1fae5", "#059669"
+                elif "HOLD" in rec_call.upper():
+                    rec_bg, rec_border, rec_text_color = "#fffbeb", "#fef3c7", "#d97706"
             
-            st.markdown(f"""
-                <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem;">
-                    <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
-                    <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
-                    <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
-                        Confidence Level: {conf_level}
+                st.markdown(f"""
+                    <div class="recommendation-banner" style="background: {rec_bg}; border: 2px solid {rec_border}; color: {rec_text_color}; padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem;">
+                        <div style="font-size: 1rem; font-weight: 700; opacity: 0.9; margin-bottom: 0.75rem; letter-spacing: 1px;">INSTITUTIONAL CALL</div>
+                        <div style="font-size: 3.5rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1rem; line-height: 1;">{rec_call}</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,0.6); display: inline-block; padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(0,0,0,0.05);">
+                            Confidence Level: {conf_level}
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
-        st.divider()
+                """, unsafe_allow_html=True)
+            st.divider()
 
-    if agg_data_list:
-        # Preparation for Dashboards
-        target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
-        target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
-        scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
+        if agg_data_list:
+            # Preparation for Dashboards
+            target_ticker = st.selectbox("Select ticker for deep dive", tickers) if len(tickers) > 1 else tickers[0]
+            target_data = next((x for x in agg_data_list if x['ticker'] == target_ticker), agg_data_list[0])
+            scores = target_data.get("scores", {"fundamental": 0, "technical": 0, "sentiment": 0})
 
-        # ─── 2. SCORE DASHBOARD (Cards) ───────────────────────────────────
-        def get_score_color(val):
-            if val >= 7: return "#059669"
-            if val >= 4: return "#d97706"
-            return "#dc2626"
+            # ─── 2. SCORE DASHBOARD (Cards) ───────────────────────────────────
+            def get_score_color(val):
+                if val >= 7: return "#059669"
+                if val >= 4: return "#d97706"
+                return "#dc2626"
 
-        f_color = get_score_color(scores.get("fundamental", 0))
-        t_color = get_score_color(scores.get("technical", 0))
-        s_color = get_score_color(scores.get("sentiment", 0))
-        m_color = get_score_color(scores.get("market_context", 0))
+            f_color = get_score_color(scores.get("fundamental", 0))
+            t_color = get_score_color(scores.get("technical", 0))
+            s_color = get_score_color(scores.get("sentiment", 0))
+            m_color = get_score_color(scores.get("market_context", 0))
 
-        c1, c2, c3, c4 = st.columns(4)
-        with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
-        with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
-        with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
-        with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+            c1, c2, c3, c4 = st.columns(4)
+            with c1: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">FUNDAMENTAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {f_color};">{scores.get("fundamental", 0)}</div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">TECHNICAL</div><div style="font-size: 2.2rem; font-weight: 800; color: {t_color};">{scores.get("technical", 0)}</div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">SENTIMENT</div><div style="font-size: 2.2rem; font-weight: 800; color: {s_color};">{scores.get("sentiment", 0)}</div></div>', unsafe_allow_html=True)
+            with c4: st.markdown(f'<div class="score-card"><div style="color: #64748b; font-size: 0.8rem; font-weight: 700;">CONTEXT</div><div style="font-size: 2.2rem; font-weight: 800; color: {m_color};">{scores.get("market_context", 0)}</div></div>', unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        # ─── 3. PRICE CHART ──────────────────────────────────────────────
-        try:
-            if tickers:
-                symbol = target_ticker
-                ticker_obj = yf.Ticker(symbol)
-                hist = ticker_obj.history(period="6mo")
-                if not hist.empty:
-                    st.markdown(f"### Price Performance: {symbol} (6 Months)")
-                    st.line_chart(hist["Close"])
-        except:
-            pass
-        st.divider()
+            # ─── 3. PRICE CHART ──────────────────────────────────────────────
+            try:
+                if tickers:
+                    symbol = target_ticker
+                    ticker_obj = yf.Ticker(symbol)
+                    hist = ticker_obj.history(period="6mo")
+                    if not hist.empty:
+                        st.markdown(f"### Price Performance: {symbol} (6 Months)")
+                        st.line_chart(hist["Close"])
+            except:
+                pass
+            st.divider()
 
-        # ─── 4. ANALYSIS BOXES (Structured from report_sections) ─────────
-        section_config = [
-            ("fundamental", "📊 Fundamental Analysis"),
-            ("technical", "📈 Technical Analysis"),
-            ("sentiment", "💬 Sentiment Analysis"),
-            ("market_context", "🌐 Market Context"),
-            ("narrative", "🤖 AI Narrative Summary"),
-            ("risks", "⚠️ Risk Factors"),
-            ("horizon", "⏳ Investment Horizon"),
-        ]
+            # ─── 4. ANALYSIS BOXES (Structured from report_sections) ─────────
+            section_config = [
+                ("fundamental", "📊 Fundamental Analysis"),
+                ("technical", "📈 Technical Analysis"),
+                ("sentiment", "💬 Sentiment Analysis"),
+                ("market_context", "🌐 Market Context"),
+                ("narrative", "🤖 AI Narrative Summary"),
+                ("risks", "⚠️ Risk Factors"),
+                ("horizon", "⏳ Investment Horizon"),
+            ]
         
-        for key, title in section_config:
-            raw_content = report_sections.get(key, "")
-            content = clean_section_content(raw_content)
-            if content:
-                with st.container():
-                    st.markdown(f"### {title}")
-                    st.markdown(content)
-                st.divider()
-
+            for key, title in section_config:
+                raw_content = report_sections.get(key, "")
+                content = clean_section_content(raw_content)
+                if content:
+                    with st.container():
+                        st.markdown(f"### {title}")
+                        st.markdown(content)
+                    st.divider()
 
 
 else:
@@ -395,7 +410,7 @@ else:
         # Center the button within this column
         b_c1, b_c2, b_c3 = st.columns([1, 1, 1])
         with b_c2:
-            submit_btn = st.button("Generate Analysis", use_container_width=True)
+            submit_btn = st.button("Generate Analysis", width="stretch")
 
 # ── Metrics Bar ──────────────────────────────────────────────────────────────
 

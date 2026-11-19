@@ -258,7 +258,11 @@ class FundamentalAnalyst:
             },
             "available_metrics": self.available_metrics_count,
             "missing_metrics": self.missing_metrics,
-            "data_confidence": confidence
+            "data_confidence": confidence,
+            # Unformatted numbers (decimals, e.g. 0.18 = 18%) for cross-stock comparison
+            "raw_values": dict(self.computed_metrics),
+            "is_bank": bool(self.is_bank),
+            "sector": self.raw_info.get("sector", "Unknown"),
         }
 
 def analyze_fundamentals(ticker: str) -> dict:

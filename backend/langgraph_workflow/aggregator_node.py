@@ -3,8 +3,14 @@ import json
 from langchain_core.prompts import PromptTemplate
 from utils.logger import get_logger
 from utils.llm_utils import invoke_with_failover
+from backend.langgraph_workflow.comparison import build_multi_stock_report, stock_signals
 
 logger = get_logger("aggregator_node")
+
+
+def _cap(text: str) -> str:
+    """Uppercase only the first character (str.capitalize would lowercase 'ROE')."""
+    return text[:1].upper() + text[1:]
 
 
 def build_deterministic_sections(ticker_data: dict, agg: dict) -> dict:
@@ -56,15 +62,17 @@ def build_deterministic_sections(ticker_data: dict, agg: dict) -> dict:
     conf = agg.get("confidence_level", "N/A")
     sections["recommendation"] = f"**{rec}**\nConfidence Level: {conf}"
     
-    # Narrative, Risks, Horizon — placeholders from deterministic data
+    # Narrative & Risks — derived from the actual metrics
+    strengths, weaknesses = stock_signals(agg) if agg.get("ticker") else ([], [])
     sections["narrative"] = (
-        f"• **Overall Score:** {agg.get('final_score', 'N/A')}/10\n\n"
-        f"• **Key Driver:** Fundamental Score {agg.get('scores', {}).get('fundamental', 0)}/10"
+        f"• **Overall Score:** {agg.get('final_score', 'N/A')}/10 ({rec})\n\n"
+        f"• **Key Strengths:** {_cap(', '.join(strengths[:4]) or 'no standout strengths in the available data')}\n\n"
+        f"• **Key Concerns:** {_cap(', '.join(weaknesses[:4]) or 'no major red flags in the available data')}"
     )
     sections["risks"] = (
-        "• **Technical Risk:** Evaluate RSI and MACD divergence\n\n"
-        "• **Fundamental Risk:** Review debt levels and margin trends\n\n"
-        "• **Market Risk:** Monitor Nifty 50 correlation"
+        f"• **Technical Risk:** RSI {t_ind.get('rsi_interpretation', 'n/a')}, MACD {t_ind.get('macd_signal', 'n/a')}\n\n"
+        f"• **Fundamental Risk:** Debt-to-equity {f_metrics.get('debt_to_equity', 'n/a')}, operating margin {f_metrics.get('operating_margin', 'n/a')}\n\n"
+        f"• **Market Risk:** Nifty 50 {m_data.get('nifty_trend', 'n/a')}"
     )
     sections["horizon"] = (
         "• **Short-Term:** Based on technical momentum indicators\n\n"
@@ -221,6 +229,19 @@ def summarize_results(state: dict) -> dict:
             }),
             "aggregated_data": []
         }
+
+    # Multi-stock modes: one final decision + comparison + per-stock details
+    if intent in ("comparison", "portfolio") and len(aggregation_results) > 1:
+        logger.info(f"Building {intent} verdict for {tickers}")
+        multi = build_multi_stock_report(intent, aggregation_results, portfolio, build_deterministic_sections)
+        verdict = multi["verdict"]
+        report = {
+            "mode": intent,
+            "verdict": verdict,
+            "stocks": multi["stocks"],
+            "recommendation": f"**{verdict['call']}**\n{verdict['headline']}",
+        }
+        return {"final_analysis": json.dumps(report, default=str), "aggregated_data": multi["ranked"]}
 
     # Step 1: Build DETERMINISTIC sections from raw agent data (always works)
     report_sections = {}

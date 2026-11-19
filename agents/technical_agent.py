@@ -84,6 +84,9 @@ def analyze_technicals(ticker: str) -> dict:
             "latest_data_date": latest_date,
             "indicators": {
                 "current_price": round(price, 2),
+                "rsi": None if pd.isna(rsi_val) else round(float(rsi_val), 2),
+                "sma_50": None if pd.isna(sma_50) else round(float(sma_50), 2),
+                "sma_200": None if pd.isna(sma_200) else round(float(sma_200), 2),
                 "rsi_interpretation": rsi_desc,
                 "sma_50_interpretation": sma_50_desc,
                 "sma_200_interpretation": sma_200_desc,

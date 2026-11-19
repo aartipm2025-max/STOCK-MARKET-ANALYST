@@ -167,7 +167,8 @@ def master_node_func(state: dict) -> dict:
     # Only override if we didn't hit a hard API error, AND if there are actually tickers to process.
     if not parsed.get("error") and intent not in ["error_quota", "error_general"] and len(tickers) > 0:
         if mode == "Single Stock":
-            intent = "single_stock"
+            # Several stocks typed in single mode ("TCS vs Infosys") -> compare them
+            intent = "single_stock" if len(tickers) == 1 else ("portfolio" if intent == "portfolio" else "comparison")
         elif mode == "Compare Stocks":
             intent = "comparison"
         elif mode == "Portfolio":
