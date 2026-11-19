@@ -28,7 +28,9 @@ def get_llm_instance(provider, temperature=0):
     elif provider == "groq":
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key: return None
-        return ChatGroq(model_name="llama-3.3-70b-versatile", temperature=temperature, groq_api_key=api_key, max_retries=0)
+        # llama-3.3-70b-versatile was retired by Groq; override with GROQ_MODEL in .env if needed
+        model_name = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+        return ChatGroq(model_name=model_name, temperature=temperature, groq_api_key=api_key, max_retries=0)
     
     elif provider == "openai":
         api_key = os.getenv("OPENAI_API_KEY")
@@ -49,7 +51,8 @@ def invoke_with_failover(prompt, input_vars, temperature=0):
         try:
             llm = get_llm_instance(provider, temperature)
             if not llm:
-                logger.warning(f"Skipping {provider} (API key not set).")
+                reason = "temporarily blacklisted after an error" if provider in EXHAUSTED_PROVIDERS else "API key not set"
+                logger.warning(f"Skipping {provider} ({reason}).")
                 continue
             
             logger.info(f"Attempting LLM invocation with {provider}...")

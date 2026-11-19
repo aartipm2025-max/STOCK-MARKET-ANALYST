@@ -340,7 +340,7 @@ if st.session_state.results:
         # ─── 3. PRICE CHART ──────────────────────────────────────────────
         try:
             if tickers:
-                symbol = tickers[0]
+                symbol = target_ticker
                 ticker_obj = yf.Ticker(symbol)
                 hist = ticker_obj.history(period="6mo")
                 if not hist.empty:
