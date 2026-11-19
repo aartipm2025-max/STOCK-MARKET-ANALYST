@@ -139,7 +139,7 @@ def summarize_results(state: dict) -> dict:
         return {
             "final_analysis": json.dumps({
                 "recommendation": "⚠️ API Quota Reached",
-                "fundamental": "Your Gemini API free-tier quota has been exhausted.",
+                "fundamental": "All configured LLM providers (Groq / Gemini / OpenAI) are rate-limited or out of quota, and no ticker could be recognised from the query. Try again shortly or type the NSE symbol directly (e.g. RELIANCE).",
                 "technical": "", "sentiment": "", "market_context": "",
                 "narrative": "", "risks": "", "horizon": ""
             }),

@@ -142,14 +142,13 @@ api_url_setting = "http://localhost:8000"
 if "results" not in st.session_state:
     st.session_state.results = None
 
+@st.cache_resource(show_spinner=False)
+def get_graph():
+    return build_graph()
+
+
 # ── Helper: Call API ─────────────────────────────────────────────────────────
 def call_market_api(query, mode=None, force_integrated=False):
-    # If mode is explicitly selected in UI, hint it in the query
-    hinted_query = query
-    if mode == "Single Stock": hinted_query = f"[MODE: Single Stock Analysis] {query}"
-    elif mode == "Compare Stocks": hinted_query = f"[MODE: Stock Comparison] {query}"
-    elif mode == "Portfolio": hinted_query = f"[MODE: Portfolio Analysis] {query}"
-    
     if not force_integrated:
         endpoint = f"{api_url_setting}/analyze"
         try:
@@ -161,7 +160,7 @@ def call_market_api(query, mode=None, force_integrated=False):
             
     # Integrated Mode Logic
     try:
-        graph = build_graph()
+        graph = get_graph()
         initial_state = {
             "query": query,
             "mode": mode or "Single Stock",
@@ -173,7 +172,8 @@ def call_market_api(query, mode=None, force_integrated=False):
             "context_data": {},
             "portfolio_data": {},
             "final_analysis": "",
-            "aggregated_data": []
+            "aggregated_data": [],
+            "error": ""
         }
         result_state = graph.invoke(initial_state)
         return {
@@ -183,8 +183,13 @@ def call_market_api(query, mode=None, force_integrated=False):
             "aggregated_data": result_state.get("aggregated_data", [])
         }
     except Exception as e:
-        st.error(f"Integrated Agent Error: {e}")
-        return None
+        # Return the error as a result so it survives the st.rerun() that follows
+        return {
+            "intent": "error_general",
+            "tickers": [],
+            "analysis": json.dumps({"recommendation": f"❌ System Error: {e}"}),
+            "aggregated_data": [],
+        }
 
 
 # ── Global Central Container ──────────────────────────────────────────────────

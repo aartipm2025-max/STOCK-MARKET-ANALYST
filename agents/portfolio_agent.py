@@ -4,18 +4,18 @@ import numpy as np
 
 def analyze_portfolio(tickers: list) -> dict:
     """Production Portfolio Analyst Agent."""
+    ytd_start = f"{pd.Timestamp.now().year}-01-01"
     try:
         portfolio_data = {}
         total_value = 0
         returns = []
-        
+
         for ticker in tickers:
             stock = yf.Ticker(ticker)
             hist = stock.history(period="1y")
             if hist.empty: continue
             
             # YTD Return
-            ytd_start = f"{pd.Timestamp.now().year}-01-01"
             ytd_data = hist.loc[ytd_start:]
             if not ytd_data.empty:
                 ytd_ret = (ytd_data['Close'].iloc[-1] / ytd_data['Close'].iloc[0]) - 1
@@ -28,11 +28,11 @@ def analyze_portfolio(tickers: list) -> dict:
             
             portfolio_data[ticker] = {
                 "ytd_return": round(ytd_ret, 4),
-                "sector": stock.info.get("sector", "Unknown")
+                "sector": (stock.info or {}).get("sector", "Unknown")
             }
 
         # Portfolio level metrics
-        combined_returns = pd.concat(returns, axis=1).mean(axis=1) if returns else pd.Series()
+        combined_returns = pd.concat(returns, axis=1).mean(axis=1) if returns else pd.Series(dtype=float)
         ytd_port_return = combined_returns.loc[ytd_start:].sum() if not combined_returns.empty else 0
         volatility = combined_returns.std() * np.sqrt(252) if not combined_returns.empty else 0
         

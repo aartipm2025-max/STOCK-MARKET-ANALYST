@@ -45,7 +45,7 @@ async def analyze_query(req: QueryRequest):
         # 1. Faster Routing Check (Extract Ticker for Cache Check)
         # We assume if it's a single ticker mention, we can check cache
         potential_ticker = req.query.strip().upper()
-        if req.mode == "Single Stock" and potential_ticker:
+        if req.mode == "Single Stock" and potential_ticker and len(potential_ticker.split()) == 1:
             # Simple normalization for cache key
             clean_ticker = potential_ticker.split()[0].replace(".NS", "") + ".NS"
             cached_data = get_from_cache(clean_ticker)
@@ -72,7 +72,8 @@ async def analyze_query(req: QueryRequest):
             "context_data": {},
             "portfolio_data": {},
             "final_analysis": "",
-            "aggregated_data": []
+            "aggregated_data": [],
+            "error": ""
         }
         
         result_state = graph.invoke(initial_state)

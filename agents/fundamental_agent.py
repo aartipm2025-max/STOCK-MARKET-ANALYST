@@ -5,6 +5,15 @@ from utils.logger import get_logger
 
 logger = get_logger("fundamental_agent")
 
+
+def _to_num(v):
+    """Return v as a finite float, or None if missing/invalid."""
+    try:
+        f = float(v)
+        return None if (np.isnan(f) or np.isinf(f)) else f
+    except (TypeError, ValueError):
+        return None
+
 class FundamentalAnalyst:
     def __init__(self, ticker_symbol: str):
         self.ticker_symbol = ticker_symbol
@@ -62,8 +71,10 @@ class FundamentalAnalyst:
             logger.error(f"Error fetching fast_info for {self.ticker_symbol}: {e}")
             self.raw_fast_info = {}
 
-    def _get_val(self, source, keys, default=None):
+    def _get_val(self, source, keys, default=None, series=False):
         """Helper to get value from various dict/DF sources using multiple possible keys."""
+        if source is None:
+            return default
         if isinstance(source, pd.DataFrame):
             if source.empty: return default
             idx_map = {str(k).lower().strip().replace(" ", ""): k for k in source.index}
@@ -72,7 +83,10 @@ class FundamentalAnalyst:
                 if norm_key in idx_map:
                     try:
                         val = source.loc[idx_map[norm_key]]
-                        if isinstance(val, pd.Series): return val.iloc[0]
+                        if isinstance(val, pd.Series):
+                            val = val.dropna()
+                            if val.empty: continue
+                            return val if series else val.iloc[0]
                         return val
                     except: continue
         elif isinstance(source, (dict, object)):
@@ -101,7 +115,7 @@ class FundamentalAnalyst:
 
         # Priority: Financials/Balance Sheet first, then Info fallback
         self.normalized_metrics = {
-            "revenue_data": self._get_val(self.raw_financials, mappings["revenue"]), # Full series for growth
+            "revenue_data": self._get_val(self.raw_financials, mappings["revenue"], series=True), # Full series for growth
             "equity": self._get_val(self.raw_balance_sheet, mappings["equity"]),
             "net_income": self._get_val(self.raw_financials, mappings["net_income"]),
             "debt": self._get_val(self.raw_balance_sheet, mappings["debt"]),
@@ -133,15 +147,15 @@ class FundamentalAnalyst:
         roe = m["roe_raw"]
         if roe is None and m["net_income"] is not None and m["equity"] is not None and m["equity"] != 0:
             roe = m["net_income"] / m["equity"]
-        c["roe"] = roe if roe is not None and not np.isnan(roe) else None
+        c["roe"] = _to_num(roe)
 
         # 2. Debt to Equity (Compute if raw missing)
         de = self._get_val(self.raw_info, ["debtToEquity"])
         if de is not None:
-            de = de / 100.0 if de > 5 else de # Normalize to decimal
+            de = float(de) / 100.0  # Yahoo reports debtToEquity as a percentage (e.g. 35.6 => 0.356x)
         elif m["debt"] is not None and m["equity"] is not None and m["equity"] != 0:
             de = m["debt"] / m["equity"]
-        c["debt_to_equity"] = de if de is not None and not np.isnan(de) else None
+        c["debt_to_equity"] = _to_num(de)
 
         # 3. Revenue Growth
         rev_growth = m["rev_growth_raw"]
@@ -151,7 +165,7 @@ class FundamentalAnalyst:
             current, prev = rev_series.iloc[0], rev_series.iloc[1]
             if prev and prev != 0:
                 rev_growth = (current - prev) / prev
-        c["revenue_growth"] = rev_growth if rev_growth is not None and not np.isnan(rev_growth) else None
+        c["revenue_growth"] = _to_num(rev_growth)
 
         # 4. Operating Margin
         margin = m["op_margin_raw"]
@@ -160,10 +174,10 @@ class FundamentalAnalyst:
              op_inc = self._get_val(self.raw_financials, ["Operating Income"])
              if op_inc and rev and rev != 0:
                  margin = op_inc / rev
-        c["operating_margin"] = margin if margin is not None and not np.isnan(margin) else None
+        c["operating_margin"] = _to_num(margin)
 
         # 5. PE Ratio
-        c["pe_ratio"] = self.raw_info.get("trailingPE") or self.raw_info.get("forwardPE")
+        c["pe_ratio"] = _to_num(self.raw_info.get("trailingPE")) or _to_num(self.raw_info.get("forwardPE"))
 
         self.computed_metrics = c
         self.missing_metrics = [k for k, v in c.items() if v is None]

@@ -1,10 +1,86 @@
 import os
+import re
 import json
 from langchain_core.prompts import PromptTemplate
 from utils.logger import get_logger
 from utils.llm_utils import invoke_with_failover, extract_json
 
 logger = get_logger("master_node")
+
+# Rule-based fallback used when every LLM provider is unavailable.
+COMMON_TICKERS = {
+    "reliance": "RELIANCE.NS", "ril": "RELIANCE.NS",
+    "tcs": "TCS.NS", "tata consultancy": "TCS.NS",
+    "infosys": "INFY.NS", "infy": "INFY.NS",
+    "wipro": "WIPRO.NS", "hcl": "HCLTECH.NS", "hcltech": "HCLTECH.NS",
+    "tech mahindra": "TECHM.NS", "techm": "TECHM.NS",
+    "hdfc bank": "HDFCBANK.NS", "hdfcbank": "HDFCBANK.NS", "hdfc": "HDFCBANK.NS",
+    "icici bank": "ICICIBANK.NS", "icici": "ICICIBANK.NS",
+    "sbi": "SBIN.NS", "state bank": "SBIN.NS",
+    "axis bank": "AXISBANK.NS", "axis": "AXISBANK.NS",
+    "kotak": "KOTAKBANK.NS", "kotak mahindra": "KOTAKBANK.NS",
+    "bajaj finance": "BAJFINANCE.NS", "bajaj finserv": "BAJAJFINSV.NS",
+    "itc": "ITC.NS", "hindustan unilever": "HINDUNILVR.NS", "hul": "HINDUNILVR.NS",
+    "larsen": "LT.NS", "l&t": "LT.NS", "maruti": "MARUTI.NS",
+    "tata motors": "TATAMOTORS.NS", "tata steel": "TATASTEEL.NS",
+    "mahindra": "M&M.NS", "m&m": "M&M.NS", "sun pharma": "SUNPHARMA.NS",
+    "bharti airtel": "BHARTIARTL.NS", "airtel": "BHARTIARTL.NS",
+    "asian paints": "ASIANPAINT.NS", "titan": "TITAN.NS", "adani enterprises": "ADANIENT.NS",
+    "adani ports": "ADANIPORTS.NS", "ongc": "ONGC.NS", "ntpc": "NTPC.NS",
+    "power grid": "POWERGRID.NS", "coal india": "COALINDIA.NS", "nestle": "NESTLEIND.NS",
+    "ultratech": "ULTRACEMCO.NS", "zomato": "ETERNAL.NS", "eternal": "ETERNAL.NS",
+    "paytm": "PAYTM.NS", "nykaa": "NYKAA.NS", "dmart": "DMART.NS",
+    "apple": "AAPL", "microsoft": "MSFT", "nvidia": "NVDA", "google": "GOOGL",
+    "alphabet": "GOOGL", "amazon": "AMZN", "tesla": "TSLA", "meta": "META",
+}
+
+_STOPWORDS = {
+    "VS", "AND", "OR", "THE", "HOW", "IS", "DOING", "ANALYZE", "ANALYSE", "MY", "PORTFOLIO",
+    "COMPARE", "WITH", "STOCK", "STOCKS", "SHARE", "SHARES", "OF", "FOR", "A", "AN", "TO",
+    "WHAT", "SHOULD", "I", "BUY", "SELL", "HOLD", "VERSUS", "ABOUT", "TELL", "ME", "IN",
+    "BETTER", "BEST", "AMONG", "HOLDINGS", "REVIEW", "LTD", "LIMITED", "INDIA", "NSE", "BSE",
+    "PE", "P/E", "EPS", "ROE", "ROCE", "IPO", "ETF", "NAV", "RSI", "MACD", "SMA", "EMA", "SIP",
+    "GDP", "RBI", "SEBI", "FII", "DII", "AI", "NIFTY", "SENSEX", "USA", "US", "EV", "CAGR",
+}
+
+
+def rule_based_parse(query: str) -> dict:
+    """Resolve tickers without an LLM (fallback when all providers fail)."""
+    q = query.lower()
+    hits = []  # (position, ticker)
+    masked = query
+    # Match longest names first so "hdfc bank" wins over "hdfc"
+    for name in sorted(COMMON_TICKERS, key=len, reverse=True):
+        pattern = r"(?<![a-z])" + re.escape(name) + r"(?![a-z])"
+        for m in re.finditer(pattern, q):
+            hits.append((m.start(), COMMON_TICKERS[name]))
+            # mask so shorter names / raw-symbol pass don't re-match it
+            q = q[:m.start()] + " " * len(name) + q[m.end():]
+            masked = masked[:m.start()] + " " * len(name) + masked[m.end():]
+
+    # Tokens the user typed in CAPITALS (e.g. "IRCTC", "INFY.NS") are treated as raw symbols
+    for m in re.finditer(r"[^\s,;/+]+", masked):
+        tok = m.group().strip(".?!:()[]\"'")
+        if not tok or tok != tok.upper() or tok in _STOPWORDS:
+            continue
+        if not re.fullmatch(r"[A-Z][A-Z0-9&\-]{1,14}(\.[A-Z]{1,3})?", tok):
+            continue
+        hits.append((m.start(), tok if "." in tok else f"{tok}.NS"))
+
+    found = []
+    for _, t in sorted(hits):
+        if t not in found:
+            found.append(t)
+
+    if not found:
+        intent = "general_query"
+    elif len(found) == 1:
+        intent = "single_stock"
+    elif "portfolio" in query.lower() or "holding" in query.lower():
+        intent = "portfolio"
+    else:
+        intent = "comparison"
+    return {"intent": intent, "tickers": found}
 
 def parse_query_and_intent(query: str) -> dict:
     """Production Ticker Resolver & Intent Classifier."""
@@ -49,8 +125,10 @@ Output Format (STRICT JSON ONLY, NO PREAMBLE):
         
         # Ensure NSE suffix if not present for strings that look like Indian tickers
         resolved_tickers = []
-        for t in result.get("tickers", []):
-            t = t.upper()
+        for t in result.get("tickers", []) or []:
+            if not isinstance(t, str) or not t.strip():
+                continue
+            t = t.strip().upper()
             if not t.endswith(".NS") and "." not in t:
                 # Assuming Indian stocks as default per system role
                 t = f"{t}.NS"
@@ -63,7 +141,11 @@ Output Format (STRICT JSON ONLY, NO PREAMBLE):
         }
     except Exception as e:
         error_msg = str(e)
-        logger.error(f"Error parsing query: {error_msg}")
+        logger.error(f"Error parsing query via LLM: {error_msg}. Falling back to rule-based resolver.")
+        fallback = rule_based_parse(query)
+        if fallback["tickers"]:
+            logger.info(f"Rule-based fallback resolved: {fallback}")
+            return fallback
         # Capture quota errors specifically to inform the user
         if "429" in error_msg or "quota" in error_msg.lower():
             intent = "error_quota"

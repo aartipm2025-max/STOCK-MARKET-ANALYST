@@ -26,6 +26,7 @@ class AgentState(TypedDict):
     portfolio_data: Dict[str, Any]
     final_analysis: str
     aggregated_data: List[Dict[str, Any]]
+    error: str
 
 from concurrent.futures import ThreadPoolExecutor
 
